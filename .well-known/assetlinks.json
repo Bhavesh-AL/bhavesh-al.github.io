@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.hitachi.axiswebview",
+      "sha256_cert_fingerprints": [
+        "FF:45:C9:B1:3E:A9:DD:DB:36:52:3D:86:CA:07:32:98:82:32:E1:43:F0:98:BA:50:35:C4:FD:FC:9E:CB:CE:E3"
+      ]
+    }
+  }
+]
