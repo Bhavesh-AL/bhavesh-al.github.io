@@ -3,10 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- replace your current viewport meta with this -->
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
   <meta name="theme-color" content="#A10054" />
   <title>Hitachi Axis — TWA Full-Screen Demo</title>
   <style>
+    html, body {
+  touch-action: pan-x pan-y;        /* disables pinch zoom */
+  -ms-touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;   /* stops iOS/Android text auto-zoom */
+  text-size-adjust: 100%;
+}
+
     /* --- Reset / base --- */
     *,*::before,*::after{box-sizing:border-box}
     html,body{height:100%;}
