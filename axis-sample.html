@@ -48,6 +48,9 @@
     .btn.solid{background:#fff;color:#111}
     .btn.ghost{background:rgba(255,255,255,.16);color:#fff}
     .btn.outline{background:transparent;color:var(--axis);outline:2px solid rgba(161,0,84,.3)}
+    
+    /* ✅ FIX 2: Added primary button style */
+    .btn.primary{background:var(--axis);color:#fff}
 
     .hero{min-height:calc(100svh - 64px);display:grid;place-items:center;background:
       radial-gradient(1200px 500px at 10% -10%, rgba(255,255,255,.25), transparent 60%),
@@ -57,6 +60,13 @@
     }
     .hero .card{display:grid;gap:22px;background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:var(--shadow)}
     .pill{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--axis);background:rgba(161,0,84,.08);padding:8px 12px;border-radius:999px}
+    
+    /* ✅ FIX 3: Make pill in header match header colors */
+    header .pill {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.16);
+    }
+    
     .title{font-size:clamp(24px,4vw,42px);line-height:1.1;margin:0;color:var(--ink)}
     .subtitle{margin:0;color:var(--muted)}
     .cta{display:flex;flex-wrap:wrap;gap:12px}
@@ -102,46 +112,55 @@
     
     
     /* * ===============================================
-     * ✅ CORRECTED PRINT STYLES START HERE
+     * ✅ FIX 1: REBUILT PRINT STYLES
      * ===============================================
      */
 
     @media print {
       
       /* -------- IMAGE PRINTING MODE -------- */
-      /* When printing-image is active... */
-
-      /* 1. Hide all main page content */
-      body.printing-image header,
-      body.printing-image main,
-      body.printing-image footer,
-      body.printing-image .toast {
+      /* 1. Hide ALL direct children of <body> EXCEPT the #printOverlay */
+      body.printing-image > :not(#printOverlay) {
         display: none !important;
       }
       
-      /* 2. The #printOverlay (which is now the only visible element) will print */
-      body.printing-image { margin: 0; }
-      
-      
+      /* 2. Force the overlay to be a static block (not 'fixed') */
+      body.printing-image #printOverlay {
+        display: flex !important;
+        position: static !important;
+        width: 100%;
+        height: 100%;
+      }
+      body.printing-image #printOverlay img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
+
       /* -------- REGULAR PAGE PRINTING MODE -------- */
-      /* When NOT printing an image (e.g., "Print Page" button) */
+      /* When NOT printing an image, hide non-content sections */
       body:not(.printing-image) header,
       body:not(.printing-image) .hero,
       body:not(.printing-image) footer,
       body:not(.printing-image) nav.actions,
-      body:not(.printing-image) .toast { 
+      body:not(.printing-image) .toast,
+      body:not(.printing-image) #printOverlay { 
         display: none !important; 
       }
-      body:not(.printing-image) { margin: 0; }
       
-
       /* -------- GLOBAL PRINT RULES -------- */
-      /* Apply edge-to-edge printing in both modes */
-      @page { margin: 0; }
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important; /* Save ink, ensure white BG */
+      }
+      @page {
+        margin: 0; /* No page margins */
+      }
     }
     
     /* * ===============================================
-     * ✅ CORRECTED PRINT STYLES END HERE
+     * END OF PRINT FIX
      * ===============================================
      */
 
@@ -246,7 +265,7 @@
 
           <div class="file-row">
             <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" />
-            <button class="btn solid" onclick="printUploaded()">Print Uploaded</button>
+            <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
             <span id="fileName" class="file-name muted"></span>
           </div>
 
