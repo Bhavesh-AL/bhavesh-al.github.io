@@ -10,7 +10,7 @@
 
   <style>
     html, body {
-      touch-action: pan-x pan-y; /* disables pinch zoom */
+      touch-action: pan-x pan-y;
       -ms-touch-action: pan-x pan-y;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
@@ -29,11 +29,11 @@
     }
 
     :root {
-      --axis:#A10054;          /* Axis magenta */
-      --hitachi:#E60012;       /* Hitachi red */
-      --ink:#111827;           /* Slate 900 */
-      --muted:#6b7280;         /* Slate 500 */
-      --bg:#f8fafc;            /* Slate 50 */
+      --axis:#A10054;
+      --hitachi:#E60012;
+      --ink:#111827;
+      --muted:#6b7280;
+      --bg:#f8fafc;
       --card:#ffffff;
       --shadow:0 10px 30px rgba(0,0,0,.06), 0 2px 10px rgba(0,0,0,.04);
       --radius:20px;
@@ -113,11 +113,32 @@
       pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
-    /* ✅ Print styling for whole-page prints (via Print Page button) */
+    /* ---------- PRINT-ONLY MODE (for Print Uploaded) ---------- */
+    /* hidden by default */
+    #printOnly { display: none; }
+
+    /* When we toggle this class, we want ONLY #printOnly visible */
+    body.printing-only #printOnly { display: block; }
+
+    @media print {
+      /* Hide everything in printing-only mode... */
+      body.printing-only * { display: none !important; }
+
+      /* ...except the printOnly container and its contents */
+      body.printing-only #printOnly,
+      body.printing-only #printOnly * { display: block !important; }
+
+      /* Edge-to-edge image */
+      @page { margin: 0; }
+      body.printing-only { margin: 0; }
+      #printOnly img { width: 100%; height: auto; }
+    }
+
+    /* Normal whole-page prints (Print Page button) */
     @media print {
       header, .hero, footer, nav.actions, .toast { display: none !important; }
       body { margin: 0; }
-      /* Uncomment for 80mm thermal print of the whole page:
+      /* Optional: 80mm thermal for whole-page prints
       @page { size: 80mm auto; margin: 0; }
       body { font-family: monospace; font-size: 12pt; }
       */
@@ -130,7 +151,6 @@
     <div class="container topbar">
       <div class="brand" aria-label="Hitachi Axis">
         <span class="mark" aria-hidden="true">
-          <!-- Inline mark: stylized H/A -->
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
             <rect x="2" y="3" width="6" height="18" rx="2" fill="#A10054"/>
             <rect x="16" y="3" width="6" height="18" rx="2" fill="#E60012"/>
@@ -147,7 +167,6 @@
         <button class="btn ghost" onclick="scrollToId('products')">Products</button>
         <button class="btn ghost" onclick="scrollToId('features')">Features</button>
         <button class="btn solid" onclick="primaryCTA()">Open Account</button>
-        <!-- Print whole page -->
         <button class="btn solid" onclick="printPage()">Print Page</button>
       </nav>
     </div>
@@ -256,7 +275,7 @@
       <div class="container">
         <div class="card">
           <h2 style="margin:0 0 10px">Upload & Print</h2>
-          <p class="muted" style="margin:0 0 12px">Choose an image, PDF, or text file. “Print Uploaded” will print the image only.</p>
+          <p class="muted" style="margin:0 0 12px">Choose an image, PDF, or text file. “Print Uploaded” prints the image only.</p>
 
           <div class="file-row">
             <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" />
@@ -264,7 +283,7 @@
             <span id="fileName" class="file-name muted"></span>
           </div>
 
-          <!-- Preview/print container -->
+          <!-- Preview container -->
           <div id="printArea">
             <div class="placeholder">No file selected yet.</div>
           </div>
@@ -281,6 +300,9 @@
       </div>
     </div>
   </footer>
+
+  <!-- Print-only container (shown only during Print Uploaded) -->
+  <div id="printOnly" aria-hidden="true"></div>
 
   <script>
     // Stable viewport height for notch devices and TWA
@@ -335,9 +357,9 @@
       // PDF preview
       if (type === 'application/pdf') {
         const iframe = document.createElement('iframe');
-        iframe.src = url; // Chrome will render the PDF
+        iframe.src = url;
         printArea.appendChild(iframe);
-        toaster('PDF preview shown (Print Uploaded only prints images)');
+        toaster('PDF preview shown (Print Uploaded prints images only)');
         return;
       }
 
@@ -347,84 +369,54 @@
         const pre = document.createElement('pre');
         pre.textContent = text;
         printArea.appendChild(pre);
-        toaster('Text preview shown (Print Uploaded only prints images)');
+        toaster('Text preview shown (Print Uploaded prints images only)');
         return;
       }
 
-      // Fallback for unknown types
+      // Fallback
       const info = document.createElement('div');
       info.className = 'placeholder';
-      info.textContent = 'Unsupported file type for inline preview. Try image, PDF, or text.';
+      info.textContent = 'Unsupported file type for preview. Try image, PDF, or text.';
       printArea.appendChild(info);
     });
 
-    // ✅ Print only the uploaded IMAGE (not the whole page)
-   async function printUploaded(){
-    const img = document.querySelector('#printArea img');
-    if (!img) { toaster('Please upload an image first.'); return; }
+    // ✅ Print only the uploaded IMAGE (no popups/iframes; TWA-safe)
+    function printUploaded() {
+      const srcImg = document.querySelector('#printArea img');
+      if (!srcImg) { toaster('Please upload an image first.'); return; }
 
-    // Convert the preview image to a data URL (avoids blob/origin issues)
-    const dataUrl = await (async () => {
-      // If it's already a data URL, use it
-      if (img.src.startsWith('data:')) return img.src;
+      const printOnly = document.getElementById('printOnly');
+      printOnly.innerHTML = '';
 
-      // Draw to canvas -> data URL (ensures printable source in iframe)
-      await img.decode().catch(()=>{}); // ensure it's loaded
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      return canvas.toDataURL('image/png'); // lossless-ish, printer friendly
-    })();
+      // Clone the image (keeps blob/data URL)
+      const clone = new Image();
+      clone.src = srcImg.src;
+      clone.alt = 'print';
+      printOnly.appendChild(clone);
 
-    // Build a hidden iframe and write minimal printable HTML to it
-    const frame = document.createElement('iframe');
-    frame.style.position = 'fixed';
-    frame.style.right = '0';
-    frame.style.bottom = '0';
-    frame.style.width = '0';
-    frame.style.height = '0';
-    frame.style.border = '0';
-    frame.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(frame);
+      // Toggle print-only mode so CSS hides everything but #printOnly
+      document.body.classList.add('printing-only');
 
-    const doc = frame.contentDocument || frame.contentWindow.document;
-    doc.open();
-    doc.write(`
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Print</title>
-        <style>
-          @page { margin: 0; }      /* no margins */
-          html, body { margin: 0; padding: 0; }
-          img { width: 100%; height: auto; display: block; }
-          /* For 80mm thermal, uncomment:
-          @page { size: 80mm auto; margin: 0; }
-          */
-        </style>
-      </head>
-      <body>
-        <img id="pimg" src="${dataUrl}" alt="print">
-      </body>
-      </html>
-    `);
-    doc.close();
+      const cleanup = () => {
+        document.body.classList.remove('printing-only');
+        printOnly.innerHTML = '';
+        window.onafterprint = null;
+      };
 
-    const doPrint = () => {
-      try { frame.contentWindow.focus(); frame.contentWindow.print(); }
-      finally { setTimeout(() => frame.remove(), 500); } // cleanup
-    };
+      window.onafterprint = cleanup;
 
-    const pimg = doc.getElementById('pimg');
-    if (pimg.complete) doPrint();
-    else {
-      pimg.onload = doPrint;
-      pimg.onerror = () => { frame.remove(); toaster('Could not load image for printing.'); };
+      // Wait for the cloned image to be ready, then print
+      const go = () => window.print();
+      if ('decode' in clone) {
+        clone.decode().then(go).catch(go);
+      } else if (clone.complete) {
+        go();
+      } else {
+        clone.onload = go;
+        clone.onerror = go;
+      }
     }
-  }
+
     document.getElementById('year').textContent=new Date().getFullYear();
   </script>
 
