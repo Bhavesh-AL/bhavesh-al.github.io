@@ -359,51 +359,72 @@
     });
 
     // ✅ Print only the uploaded IMAGE (not the whole page)
-    function printUploaded(){
-      const img = document.querySelector('#printArea img');
-      if (!img) {
-        toaster('Please upload an image first.');
-        return;
-      }
+   async function printUploaded(){
+    const img = document.querySelector('#printArea img');
+    if (!img) { toaster('Please upload an image first.'); return; }
 
-      const w = window.open('', '_blank', 'noopener,noreferrer');
-      if (!w) {
-        toaster('Popup blocked. Allow popups to print.');
-        return;
-      }
+    // Convert the preview image to a data URL (avoids blob/origin issues)
+    const dataUrl = await (async () => {
+      // If it's already a data URL, use it
+      if (img.src.startsWith('data:')) return img.src;
 
-      // Minimal HTML that contains only the image
-      w.document.write(`
-        <!doctype html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Print</title>
-          <style>
-            @page { margin: 0; }
-            html, body { margin: 0; padding: 0; }
-            /* Fill printable width while keeping aspect ratio */
-            img { width: 100%; height: auto; display: block; }
-          </style>
-        </head>
-        <body>
-          <img src="${img.src}" alt="print">
-        </body>
-        </html>
-      `);
-      w.document.close();
+      // Draw to canvas -> data URL (ensures printable source in iframe)
+      await img.decode().catch(()=>{}); // ensure it's loaded
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      return canvas.toDataURL('image/png'); // lossless-ish, printer friendly
+    })();
 
-      // Wait for the image to load, then print
-      const wImg = w.document.querySelector('img');
-      const onReady = () => { try { w.focus(); w.print(); } finally { w.close(); } };
-      if (wImg.complete) {
-        onReady();
-      } else {
-        wImg.onload = onReady;
-        wImg.onerror = () => { w.close(); toaster('Could not load image for printing.'); };
-      }
+    // Build a hidden iframe and write minimal printable HTML to it
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.right = '0';
+    frame.style.bottom = '0';
+    frame.style.width = '0';
+    frame.style.height = '0';
+    frame.style.border = '0';
+    frame.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(frame);
+
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Print</title>
+        <style>
+          @page { margin: 0; }      /* no margins */
+          html, body { margin: 0; padding: 0; }
+          img { width: 100%; height: auto; display: block; }
+          /* For 80mm thermal, uncomment:
+          @page { size: 80mm auto; margin: 0; }
+          */
+        </style>
+      </head>
+      <body>
+        <img id="pimg" src="${dataUrl}" alt="print">
+      </body>
+      </html>
+    `);
+    doc.close();
+
+    const doPrint = () => {
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+      finally { setTimeout(() => frame.remove(), 500); } // cleanup
+    };
+
+    const pimg = doc.getElementById('pimg');
+    if (pimg.complete) doPrint();
+    else {
+      pimg.onload = doPrint;
+      pimg.onerror = () => { frame.remove(); toaster('Could not load image for printing.'); };
     }
-
+  }
     document.getElementById('year').textContent=new Date().getFullYear();
   </script>
 
