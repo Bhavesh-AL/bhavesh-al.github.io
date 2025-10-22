@@ -99,27 +99,52 @@
 
     /* When printing-image mode is on, show overlay and hide everything else */
     body.printing-image #printOverlay{display:flex;}
+    
+    
+    /* * ===============================================
+     * ✅ CORRECTED PRINT STYLES START HERE
+     * ===============================================
+     */
 
     @media print {
-      /* Hide everything when printing-image is active... */
-      body.printing-image *{display:none !important;}
-      /* ...except the overlay and its contents */
-      body.printing-image #printOverlay,
-      body.printing-image #printOverlay *{display:flex !important;}
-      /* Edge-to-edge */
-      @page { margin: 0; }
+      
+      /* -------- IMAGE PRINTING MODE -------- */
+      /* When printing-image is active... */
+
+      /* 1. Hide all main page content */
+      body.printing-image header,
+      body.printing-image main,
+      body.printing-image footer,
+      body.printing-image .toast {
+        display: none !important;
+      }
+      
+      /* 2. The #printOverlay (which is now the only visible element) will print */
       body.printing-image { margin: 0; }
-    }
-
-    /* Optional: whole-page print cleanup when NOT printing image */
-    @media print {
+      
+      
+      /* -------- REGULAR PAGE PRINTING MODE -------- */
+      /* When NOT printing an image (e.g., "Print Page" button) */
       body:not(.printing-image) header,
       body:not(.printing-image) .hero,
       body:not(.printing-image) footer,
       body:not(.printing-image) nav.actions,
-      body:not(.printing-image) .toast { display: none !important; }
+      body:not(.printing-image) .toast { 
+        display: none !important; 
+      }
       body:not(.printing-image) { margin: 0; }
+      
+
+      /* -------- GLOBAL PRINT RULES -------- */
+      /* Apply edge-to-edge printing in both modes */
+      @page { margin: 0; }
     }
+    
+    /* * ===============================================
+     * ✅ CORRECTED PRINT STYLES END HERE
+     * ===============================================
+     */
+
   </style>
 </head>
 
@@ -141,7 +166,6 @@
   </header>
 
   <main>
-    <!-- HERO -->
     <section class="hero safe">
       <div class="container">
         <div class="card" style="text-align:left;max-width:760px;margin:0 auto">
@@ -161,7 +185,6 @@
       </div>
     </section>
 
-    <!-- FEATURES -->
     <section id="features" class="features safe">
       <div class="container">
         <h2 style="margin:0 0 14px">Why customers love it</h2>
@@ -174,7 +197,6 @@
       </div>
     </section>
 
-    <!-- PRODUCTS -->
     <section id="products" class="product-strip safe">
       <div class="container">
         <h2 style="margin:0 0 14px">Products</h2>
@@ -201,7 +223,6 @@
       </div>
     </section>
 
-    <!-- CONTACT -->
     <section class="safe" aria-labelledby="contact">
       <div class="container">
         <h2 id="contact" style="margin:0 0 14px">Need help?</h2>
@@ -217,7 +238,6 @@
       </div>
     </section>
 
-    <!-- ✅ UPLOAD & PRINT -->
     <section id="uploadSection" class="safe">
       <div class="container">
         <div class="card">
@@ -230,7 +250,6 @@
             <span id="fileName" class="file-name muted"></span>
           </div>
 
-          <!-- Preview container -->
           <div id="printArea">
             <div class="placeholder">No file selected yet.</div>
           </div>
@@ -248,7 +267,6 @@
     </div>
   </footer>
 
-  <!-- 🔒 Print overlay used only during image printing -->
   <div id="printOverlay" aria-hidden="true"></div>
 
   <script>
