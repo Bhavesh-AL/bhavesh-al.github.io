@@ -381,40 +381,53 @@
       window.onafterprint = null;
     }
 
-    function printUploaded() {
-      const srcImg = document.querySelector('#printArea img');
-      if (!srcImg) { toaster('Please upload an image first.'); return; }
+    async function printUploaded(){
+    const img = document.querySelector('#printArea img');
+    if (!img) { toaster('Please upload an image first.'); return; }
 
-      const printOnly = document.getElementById('printOnly');
-      printOnly.innerHTML = '';
+    // Make a self-contained data URL (avoids blob/CORS issues)
+    const dataUrl = await (async () => {
+      if (img.src.startsWith('data:')) return img.src;
+      await (img.decode?.() ?? Promise.resolve());
+      const c = document.createElement('canvas');
+      c.width  = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      return c.toDataURL('image/png');
+    })();
 
-      const clone = new Image();
-      clone.src = srcImg.src;   // works for blob: and data:
-      clone.alt = 'print';
-      printOnly.appendChild(clone);
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
+    frame.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(frame);
 
-      printingJustImage = true;
-      document.body.classList.add('printing-only');
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print</title>
+      <style>
+        @page { margin: 0; }         /* edge-to-edge */
+        html, body { margin:0; padding:0; }
+        img { width:100%; height:auto; display:block; }
+        /* For 80mm receipts, uncomment:
+        @page { size: 80mm auto; margin: 0; }
+        body { width: 80mm; }
+        */
+      </style>
+    </head><body>
+      <img id="pimg" src="${dataUrl}" alt="print">
+      <script>
+        const go=()=>{ try{ window.focus(); window.print(); }catch(e){} };
+        const i=document.getElementById('pimg');
+        if(i.complete) go(); else { i.onload=go; i.onerror=go; }
+        setTimeout(()=>{ try{ window.stop(); }catch(e){} }, 2000);
+      <\\/script>
+    </body></html>`);
+    doc.close();
 
-      // Ensure layout is applied before calling print:
-      const doPrint = () => {
-        // tiny delay helps Chrome Android/TWA apply styles before generating preview
-        setTimeout(() => window.print(), 50);
-      };
-
-      if ('decode' in clone) {
-        clone.decode().then(doPrint).catch(doPrint);
-      } else if (clone.complete) {
-        doPrint();
-      } else {
-        clone.onload = doPrint;
-        clone.onerror = doPrint;
-      }
-
-      // Fallback cleanup in case afterprint doesn't fire (rare)
-      window.onafterprint = cleanupPrintOnly;
-    }
-
+    // Clean up the iframe after the dialog appears
+    setTimeout(() => frame.remove(), 4000);
+  }
     document.getElementById('year').textContent=new Date().getFullYear();
   </script>
 
