@@ -96,42 +96,20 @@
       pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
-    /* -------- PRINT OVERLAY (only visible while printing image) -------- */
+    /* These overlay styles are no longer used for printing, but we can keep them */
     #printOverlay{
       position:fixed; inset:0; background:#fff;
       display:none; align-items:center; justify-content:center;
-      z-index:9999; /* above everything */
+      z-index:9999; 
     }
     #printOverlay img{max-width:100%; max-height:100%; display:block}
-
-    /* When printing-image mode is on, show overlay and hide everything else */
     body.printing-image #printOverlay{display:flex;}
     
     
     /* -------- PRINT STYLES -------- */
+    /* This block now ONLY handles the "Print Page" button */
     @media print {
-      
-      /* -------- IMAGE PRINTING MODE -------- */
-      /* 1. Hide ALL direct children of <body> EXCEPT the #printOverlay */
-      body.printing-image > :not(#printOverlay) {
-        display: none !important;
-      }
-      
-      /* 2. Force the overlay to be a static block (not 'fixed') */
-      body.printing-image #printOverlay {
-        display: flex !important;
-        position: static !important;
-        width: 100%;
-        height: 100%;
-      }
-      body.printing-image #printOverlay img {
-        width: 100%;
-        height: auto;
-        object-fit: contain;
-      }
-
-      /* -------- REGULAR PAGE PRINTING MODE -------- */
-      /* When NOT printing an image, hide non-content sections */
+      /* Hide elements when printing the *whole page* */
       body:not(.printing-image) header,
       body:not(.printing-image) .hero,
       body:not(.printing-image) footer,
@@ -141,14 +119,13 @@
         display: none !important; 
       }
       
-      /* -------- GLOBAL PRINT RULES -------- */
       body {
         margin: 0 !important;
         padding: 0 !important;
-        background: #fff !important; /* Save ink, ensure white BG */
+        background: #fff !important;
       }
       @page {
-        margin: 0; /* No page margins */
+        margin: 1cm; /* Add some margin for regular page prints */
       }
     }
     
@@ -341,63 +318,74 @@
     });
 
     
-    /* * ===============================================
-     * ✅ REBUILT 'printUploaded' FUNCTION
-     * ===============================================
+    /* * ===================================================================
+     * ✅ NEW 'printUploaded' FUNCTION (POP-UP METHOD)
+     * ===================================================================
      */
-    function printUploaded(){
+    function printUploaded() {
       const srcImg = document.querySelector('#printArea img');
-      if (!srcImg) { toaster('Please upload an image first.'); return; }
+      if (!srcImg) {
+        toaster('Please upload an image first.');
+        return;
+      }
 
-      const overlay = document.getElementById('printOverlay');
-      overlay.innerHTML = '';
-      const clone = new Image();
-      clone.alt = 'print';
-      clone.src = srcImg.src; // supports blob: and data: URLs
-      overlay.appendChild(clone);
+      const imageUrl = srcImg.src;
 
-      // Enter printing mode
-      document.body.classList.add('printing-image');
-
-      // --- New, more reliable cleanup logic ---
-      const printMediaQuery = window.matchMedia('print');
+      // Open a new, blank window
+      const printWindow = window.open('', '_blank');
       
-      // Define the cleanup function
-      const cleanup = () => {
-        document.body.classList.remove('printing-image');
-        overlay.innerHTML = '';
-      };
-      
-      // Define the listener that will call cleanup
-      const printListener = (mql) => {
-        // 'mql.matches' is true when printing, false when exiting print
-        if (!mql.matches) { 
-          cleanup();
-          // Remove this listener so it doesn't fire again
-          printMediaQuery.removeEventListener('change', printListener); 
-        }
-      };
+      if (!printWindow) {
+        toaster('Please allow pop-ups for this to work.');
+        return;
+      }
 
-      // Add the listener
-      printMediaQuery.addEventListener('change', printListener);
-      // --- End new logic ---
+      // Write the minimal HTML to the new window
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Print Image</title>
+          <style>
+            body { margin: 0; padding: 0; }
+            @page { 
+              margin: 0; /* Remove default printer margins */
+              size: auto; 
+            }
+            img {
+              max-width: 100%;
+              max-height: 100vh;
+              width: 100%;
+              height: auto;
+              object-fit: contain; /* Fit image within the page */
+              display: block;
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${imageUrl}" alt="Uploaded Image" />
+        </body>
+        </html>
+      `);
 
-      const go = () => {
-        // give the browser a tiny moment to apply layout before generating preview
-        setTimeout(() => window.print(), 50);
-      };
+      printWindow.document.close(); // Finish writing
 
-      if ('decode' in clone) {
-        clone.decode().then(go).catch(go);
-      } else if (clone.complete) {
-        go();
+      // Wait for the image to fully load in the new window
+      const printImage = printWindow.document.querySelector('img');
+
+      if (printImage.complete) {
+        // Image was already loaded (e.g., cached blob)
+        printWindow.print();
+        printWindow.close();
       } else {
-        clone.onload = go;
-        clone.onerror = go;
+        // Wait for the image to finish loading
+        printImage.onload = function() {
+          printWindow.print();
+          printWindow.close();
+        };
       }
     }
     /* * ===============================================
-     * END OF REBUILT FUNCTION
+     * END OF NEW FUNCTION
      * ===============================================
      */
 
