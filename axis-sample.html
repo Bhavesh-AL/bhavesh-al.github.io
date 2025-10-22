@@ -48,8 +48,6 @@
     .btn.solid{background:#fff;color:#111}
     .btn.ghost{background:rgba(255,255,255,.16);color:#fff}
     .btn.outline{background:transparent;color:var(--axis);outline:2px solid rgba(161,0,84,.3)}
-    
-    /* ✅ FIX 2: Added primary button style */
     .btn.primary{background:var(--axis);color:#fff}
 
     .hero{min-height:calc(100svh - 64px);display:grid;place-items:center;background:
@@ -61,7 +59,6 @@
     .hero .card{display:grid;gap:22px;background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:var(--shadow)}
     .pill{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--axis);background:rgba(161,0,84,.08);padding:8px 12px;border-radius:999px}
     
-    /* ✅ FIX 3: Make pill in header match header colors */
     header .pill {
       color: #fff;
       background: rgba(255, 255, 255, 0.16);
@@ -111,11 +108,7 @@
     body.printing-image #printOverlay{display:flex;}
     
     
-    /* * ===============================================
-     * ✅ FIX 1: REBUILT PRINT STYLES
-     * ===============================================
-     */
-
+    /* -------- PRINT STYLES -------- */
     @media print {
       
       /* -------- IMAGE PRINTING MODE -------- */
@@ -159,11 +152,6 @@
       }
     }
     
-    /* * ===============================================
-     * END OF PRINT FIX
-     * ===============================================
-     */
-
   </style>
 </head>
 
@@ -352,7 +340,11 @@
       printArea.appendChild(info);
     });
 
-    // 🔧 Print only the uploaded image — shows ONLY the image in preview
+    
+    /* * ===============================================
+     * ✅ REBUILT 'printUploaded' FUNCTION
+     * ===============================================
+     */
     function printUploaded(){
       const srcImg = document.querySelector('#printArea img');
       if (!srcImg) { toaster('Please upload an image first.'); return; }
@@ -364,15 +356,31 @@
       clone.src = srcImg.src; // supports blob: and data: URLs
       overlay.appendChild(clone);
 
-      // Enter printing mode (overlay visible, everything else hidden during @media print)
+      // Enter printing mode
       document.body.classList.add('printing-image');
 
+      // --- New, more reliable cleanup logic ---
+      const printMediaQuery = window.matchMedia('print');
+      
+      // Define the cleanup function
       const cleanup = () => {
         document.body.classList.remove('printing-image');
         overlay.innerHTML = '';
-        window.onafterprint = null;
       };
-      window.onafterprint = cleanup;
+      
+      // Define the listener that will call cleanup
+      const printListener = (mql) => {
+        // 'mql.matches' is true when printing, false when exiting print
+        if (!mql.matches) { 
+          cleanup();
+          // Remove this listener so it doesn't fire again
+          printMediaQuery.removeEventListener('change', printListener); 
+        }
+      };
+
+      // Add the listener
+      printMediaQuery.addEventListener('change', printListener);
+      // --- End new logic ---
 
       const go = () => {
         // give the browser a tiny moment to apply layout before generating preview
@@ -388,6 +396,10 @@
         clone.onerror = go;
       }
     }
+    /* * ===============================================
+     * END OF REBUILT FUNCTION
+     * ===============================================
+     */
 
     document.getElementById('year').textContent=new Date().getFullYear();
   </script>
