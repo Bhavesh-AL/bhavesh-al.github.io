@@ -67,6 +67,7 @@
     .btn{appearance:none;border:0;border-radius:999px;padding:10px 16px;font-weight:600;cursor:pointer}
     .btn.solid{background:#fff;color:#111}
     .btn.ghost{background:rgba(255,255,255,.16);color:#fff}
+    .btn.outline{background:transparent;color:var(--axis);outline:2px solid rgba(161,0,84,.3)}
 
     /* --- Hero --- */
     .hero{min-height:calc(100svh - 64px);display:grid;place-items:center;background:
@@ -96,30 +97,36 @@
     .product{background:var(--card);border-radius:16px;padding:18px;box-shadow:var(--shadow);display:grid;gap:10px}
     .tag{font-size:12px;display:inline-flex;gap:8px;align-items:center;color:#fff;background:var(--axis);padding:6px 10px;border-radius:999px}
 
-    /* --- Footer --- */
-    footer{padding:40px 0;color:var(--muted)}
-    .legal{font-size:12px;opacity:.8}
-
-    /* --- Utility --- */
-    .icon{width:18px;height:18px;display:inline-block}
-    .row{display:flex;align-items:center;gap:8px}
-    .hidden{display:none!important}
-    a{text-decoration:none}
+    /* --- Upload card --- */
+    .card{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+    .muted{color:var(--muted)}
 
     /* --- Form fields & toast --- */
     .field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:var(--card);color:inherit}
     .field:focus{outline:2px solid rgba(161,0,84,.35);box-shadow:0 0 0 4px rgba(161,0,84,.12)}
+    .file-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .file-name{font-size:.95rem}
     .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px);
       transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;
       border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s;
       pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
+    /* Preview area */
+    #printArea{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;min-height:120px;display:grid;place-items:center;overflow:hidden}
+    #printArea > .placeholder{padding:28px;color:var(--muted)}
+    #printArea img{max-width:100%;height:auto;display:block}
+    #printArea iframe{width:100%;height:500px;border:0}
+    #printArea pre{margin:0;padding:16px;white-space:pre-wrap;word-break:break-word;width:100%}
+
     /* ✅ Print styling */
     @media print {
       header, .hero, footer, nav.actions, .toast { display: none !important; }
       body { margin: 0; }
-      /* Uncomment below for thermal receipt layout
+      /* When printing uploaded content specifically, hide everything except #printArea */
+      body.printing-upload main > *:not(#uploadSection) { display: none !important; }
+      body.printing-upload #printArea { border: none; }
+      /* Uncomment for thermal receipt layout for uploaded prints
       @page { size: 80mm auto; margin: 0; }
       body { font-family: monospace; font-size: 12pt; }
       */
@@ -148,7 +155,7 @@
         <button class="btn ghost" onclick="scrollToId('products')">Products</button>
         <button class="btn ghost" onclick="scrollToId('features')">Features</button>
         <button class="btn solid" onclick="primaryCTA()">Open Account</button>
-        <!-- ✅ NEW PRINT BUTTON -->
+        <!-- Print whole page -->
         <button class="btn solid" onclick="printPage()">Print</button>
       </nav>
     </div>
@@ -205,45 +212,42 @@
           <div class="product">
             <span class="tag">Savings</span>
             <strong>Digital Savings Account</strong>
-            <p style="color:var(--muted);margin:0">Zero paperwork onboarding with video KYC.</p>
+            <p class="muted">Zero paperwork onboarding with video KYC.</p>
             <div class="cta"><a class="btn primary" href="#" onclick="primaryCTA();return false;">Apply now</a></div>
           </div>
           <div class="product">
             <span class="tag" style="background:var(--hitachi)">Credit</span>
             <strong>Axis Credit Card</strong>
-            <p style="color:var(--muted);margin:0">Rewards, EMI, and powerful controls.</p>
+            <p class="muted">Rewards, EMI, and powerful controls.</p>
             <div class="cta"><a class="btn outline" href="#" onclick="toaster('Pre-approved offer coming soon')">Check offers</a></div>
           </div>
           <div class="product">
             <span class="tag" style="background:#0ea5e9">Invest</span>
             <strong>Mutual Funds</strong>
-            <p style="color:var(--muted);margin:0">SIP in minutes. Track performance in real-time.</p>
+            <p class="muted">SIP in minutes. Track performance in real-time.</p>
             <div class="cta"><a class="btn outline" href="#" onclick="toaster('NAV charts demo only')">View NAVs</a></div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="safe" aria-labelledby="contact">
+    <!-- ✅ Upload & Print section -->
+    <section id="uploadSection" class="safe">
       <div class="container">
-        <h2 id="contact" style="margin:0 0 14px">Need help?</h2>
         <div class="card">
-          <form class="grid" style="grid-template-columns:1fr;gap:12px" onsubmit="return fakeSubmit(event)">
-            <label>
-              <span>Name</span><br/>
-              <input required class="field" type="text" placeholder="Your name" />
-            </label>
-            <label>
-              <span>Email</span><br/>
-              <input required class="field" type="email" placeholder="you@example.com" />
-            </label>
-            <label>
-              <span>Message</span><br/>
-              <textarea class="field" rows="4" placeholder="How can we help?"></textarea>
-            </label>
-            <button class="btn primary" type="submit">Send message</button>
-            <small class="legal">Demo form — does not send data.</small>
-          </form>
+          <h2 style="margin:0 0 10px">Upload & Print</h2>
+          <p class="muted" style="margin:0 0 12px">Choose an image, PDF, or text file. Preview will appear below.</p>
+
+          <div class="file-row" style="margin-bottom:12px">
+            <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" />
+            <button class="btn solid" onclick="printUploaded()">Print Uploaded</button>
+            <span id="fileName" class="file-name muted"></span>
+          </div>
+
+          <!-- Preview/print container -->
+          <div id="printArea">
+            <div class="placeholder">No file selected yet.</div>
+          </div>
         </div>
       </div>
     </section>
@@ -271,10 +275,85 @@
     function primaryCTA(){toaster('Opening account flow (demo)')}
     function fakeSubmit(e){e.preventDefault();toaster('Thanks! Team will reach out.');return false}
 
-    // ✅ PRINT FUNCTION
+    // PRINT WHOLE PAGE (normal dialog)
     function printPage(){
       toaster('Opening print dialog...');
-      window.print(); // Opens Android print dialog (select Epson printer here)
+      window.print();
+    }
+
+    // Handle file selection & preview
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    const printArea = document.getElementById('printArea');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      printArea.innerHTML = '';
+      fileNameEl.textContent = '';
+
+      if (!file) {
+        printArea.innerHTML = '<div class="placeholder">No file selected yet.</div>';
+        return;
+      }
+
+      fileNameEl.textContent = file.name;
+
+      const type = file.type || '';
+      const url = URL.createObjectURL(file);
+
+      // Image preview
+      if (type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = file.name;
+        printArea.appendChild(img);
+        toaster('Image ready for print');
+        return;
+      }
+
+      // PDF preview
+      if (type === 'application/pdf') {
+        const iframe = document.createElement('iframe');
+        iframe.src = url; // Chrome will render the PDF
+        printArea.appendChild(iframe);
+        toaster('PDF ready for print');
+        return;
+      }
+
+      // Text preview
+      if (type === 'text/plain' || file.name.endsWith('.txt')) {
+        const text = await file.text();
+        const pre = document.createElement('pre');
+        pre.textContent = text;
+        printArea.appendChild(pre);
+        toaster('Text ready for print');
+        return;
+      }
+
+      // Fallback for unknown types
+      const info = document.createElement('div');
+      info.className = 'placeholder';
+      info.textContent = 'Unsupported file type for inline preview. Try image, PDF, or text.';
+      printArea.appendChild(info);
+    });
+
+    // Print only the uploaded content
+    function printUploaded(){
+      if (!printArea || printArea.children.length === 0 || printArea.querySelector('.placeholder')) {
+        toaster('Please select a file first.');
+        return;
+      }
+      document.body.classList.add('printing-upload');
+      // Ensure we remove the class after print
+      const cleanup = () => document.body.classList.remove('printing-upload');
+      if ('onafterprint' in window) {
+        window.onafterprint = cleanup;
+      } else {
+        // Fallback cleanup
+        setTimeout(cleanup, 1500);
+      }
+      toaster('Opening print dialog for uploaded content…');
+      window.print();
     }
 
     document.getElementById('year').textContent=new Date().getFullYear();
