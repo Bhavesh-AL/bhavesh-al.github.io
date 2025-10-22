@@ -16,7 +16,6 @@
       text-size-adjust: 100%;
     }
 
-    /* --- Reset / base --- */
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
     body {
@@ -44,12 +43,10 @@
       :root{--bg:#0b0b0c;--card:#0f1115;--ink:#e5e7eb;--muted:#9ca3af;--shadow:0 10px 30px rgba(0,0,0,.4), 0 2px 10px rgba(0,0,0,.35)}
     }
 
-    /* --- Layout helpers --- */
     .safe{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
     .container{max-width:1100px;margin:0 auto;padding:0 20px}
     .grid{display:grid;gap:20px}
 
-    /* --- App header --- */
     header{
       position:sticky;top:0;z-index:10;
       background:linear-gradient(90deg,var(--axis),var(--hitachi));
@@ -65,7 +62,6 @@
     .btn.ghost{background:rgba(255,255,255,.16);color:#fff}
     .btn.outline{background:transparent;color:var(--axis);outline:2px solid rgba(161,0,84,.3)}
 
-    /* --- Hero --- */
     .hero{min-height:calc(100svh - 64px);display:grid;place-items:center;background:
       radial-gradient(1200px 500px at 10% -10%, rgba(255,255,255,.25), transparent 60%),
       radial-gradient(1200px 600px at 110% -20%, rgba(255,255,255,.15), transparent 60%),
@@ -80,7 +76,6 @@
     .cta .btn.primary{background:linear-gradient(90deg,var(--axis),var(--hitachi));color:#fff}
     .cta .btn.outline{background:transparent;color:var(--axis);outline:2px solid rgba(161,0,84,.3)}
 
-    /* --- Feature cards --- */
     .features{padding:40px 0}
     .cards{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
     .card{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
@@ -88,59 +83,55 @@
     .card p{margin:0;color:var(--muted)}
     .tag{font-size:12px;display:inline-flex;gap:8px;align-items:center;color:#fff;background:var(--axis);padding:6px 10px;border-radius:999px}
 
-    /* --- Upload card --- */
     .muted{color:var(--muted)}
     .field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:var(--card);color:inherit}
     .field:focus{outline:2px solid rgba(161,0,84,.35);box-shadow:0 0 0 4px rgba(161,0,84,.12)}
     .file-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
     .file-name{font-size:.95rem}
 
-    /* --- Preview area --- */
     #printArea{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;min-height:120px;display:grid;place-items:center;overflow:hidden}
     #printArea > .placeholder{padding:28px;color:var(--muted)}
     #printArea img{max-width:100%;height:auto;display:block}
     #printArea iframe{width:100%;height:500px;border:0}
     #printArea pre{margin:0;padding:16px;white-space:pre-wrap;word-break:break-word;width:100%}
 
-    /* --- Footer --- */
     footer{padding:40px 0;color:var(--muted)}
     .legal{font-size:12px;opacity:.8}
 
-    /* --- Toast --- */
     .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px);
       transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;
       border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s;
       pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
-    /* ---------- PRINT-ONLY MODE (for Print Uploaded) ---------- */
-    /* hidden by default */
+    /* -------- PRINT-ONLY MODE FOR IMAGE-ONLY PRINTS -------- */
     #printOnly { display: none; }
-
-    /* When we toggle this class, we want ONLY #printOnly visible */
     body.printing-only #printOnly { display: block; }
 
     @media print {
-      /* Hide everything in printing-only mode... */
+      /* Hide absolutely everything in image-only mode... */
       body.printing-only * { display: none !important; }
-
-      /* ...except the printOnly container and its contents */
+      /* ...except the image container */
       body.printing-only #printOnly,
       body.printing-only #printOnly * { display: block !important; }
 
-      /* Edge-to-edge image */
       @page { margin: 0; }
       body.printing-only { margin: 0; }
       #printOnly img { width: 100%; height: auto; }
     }
 
-    /* Normal whole-page prints (Print Page button) */
+    /* -------- NORMAL WHOLE-PAGE PRINTS (when NOT printing-only) -------- */
     @media print {
-      header, .hero, footer, nav.actions, .toast { display: none !important; }
-      body { margin: 0; }
-      /* Optional: 80mm thermal for whole-page prints
+      body:not(.printing-only) header,
+      body:not(.printing-only) .hero,
+      body:not(.printing-only) footer,
+      body:not(.printing-only) nav.actions,
+      body:not(.printing-only) .toast { display: none !important; }
+
+      body:not(.printing-only) { margin: 0; }
+      /* Optional for 80mm receipts on whole-page prints:
       @page { size: 80mm auto; margin: 0; }
-      body { font-family: monospace; font-size: 12pt; }
+      body:not(.printing-only) { font-family: monospace; font-size: 12pt; }
       */
     }
   </style>
@@ -173,7 +164,6 @@
   </header>
 
   <main>
-    <!-- HERO -->
     <section class="hero safe">
       <div class="container">
         <div class="card" style="text-align:left;max-width:760px;margin:0 auto">
@@ -193,7 +183,6 @@
       </div>
     </section>
 
-    <!-- FEATURES -->
     <section id="features" class="features safe">
       <div class="container">
         <h2 style="margin:0 0 14px">Why customers love it</h2>
@@ -218,7 +207,6 @@
       </div>
     </section>
 
-    <!-- PRODUCTS -->
     <section id="products" class="product-strip safe">
       <div class="container">
         <h2 style="margin:0 0 14px">Products</h2>
@@ -245,7 +233,6 @@
       </div>
     </section>
 
-    <!-- CONTACT -->
     <section class="safe" aria-labelledby="contact">
       <div class="container">
         <h2 id="contact" style="margin:0 0 14px">Need help?</h2>
@@ -270,7 +257,7 @@
       </div>
     </section>
 
-    <!-- ✅ UPLOAD & PRINT -->
+    <!-- Upload & Print -->
     <section id="uploadSection" class="safe">
       <div class="container">
         <div class="card">
@@ -283,7 +270,6 @@
             <span id="fileName" class="file-name muted"></span>
           </div>
 
-          <!-- Preview container -->
           <div id="printArea">
             <div class="placeholder">No file selected yet.</div>
           </div>
@@ -301,11 +287,10 @@
     </div>
   </footer>
 
-  <!-- Print-only container (shown only during Print Uploaded) -->
+  <!-- Print-only container (only visible during image-only print) -->
   <div id="printOnly" aria-hidden="true"></div>
 
   <script>
-    // Stable viewport height for notch devices and TWA
     function setVh(){document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');}
     setVh(); addEventListener('resize', setVh);
 
@@ -318,13 +303,11 @@
     function primaryCTA(){toaster('Opening account flow (demo)')}
     function fakeSubmit(e){e.preventDefault();toaster('Thanks! Team will reach out.');return false}
 
-    // PRINT WHOLE PAGE (normal dialog)
     function printPage(){
       toaster('Opening print dialog...');
       window.print();
     }
 
-    // Handle file selection & preview
     const fileInput = document.getElementById('fileInput');
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
@@ -340,11 +323,9 @@
       }
 
       fileNameEl.textContent = file.name;
-
       const type = file.type || '';
       const url = URL.createObjectURL(file);
 
-      // Image preview
       if (type.startsWith('image/')) {
         const img = document.createElement('img');
         img.src = url;
@@ -354,7 +335,6 @@
         return;
       }
 
-      // PDF preview
       if (type === 'application/pdf') {
         const iframe = document.createElement('iframe');
         iframe.src = url;
@@ -363,7 +343,6 @@
         return;
       }
 
-      // Text preview
       if (type === 'text/plain' || file.name.endsWith('.txt')) {
         const text = await file.text();
         const pre = document.createElement('pre');
@@ -373,14 +352,35 @@
         return;
       }
 
-      // Fallback
       const info = document.createElement('div');
       info.className = 'placeholder';
       info.textContent = 'Unsupported file type for preview. Try image, PDF, or text.';
       printArea.appendChild(info);
     });
 
-    // ✅ Print only the uploaded IMAGE (no popups/iframes; TWA-safe)
+    // ---- Image-only print flow (prevents extra pages) ----
+    let printingJustImage = false;
+
+    // Make sure our print-only class is applied even if Chrome fires beforeprint early
+    window.addEventListener('beforeprint', () => {
+      if (printingJustImage) {
+        document.body.classList.add('printing-only');
+      }
+    });
+
+    window.addEventListener('afterprint', () => {
+      if (printingJustImage) {
+        cleanupPrintOnly();
+      }
+    });
+
+    function cleanupPrintOnly() {
+      document.body.classList.remove('printing-only');
+      document.getElementById('printOnly').innerHTML = '';
+      printingJustImage = false;
+      window.onafterprint = null;
+    }
+
     function printUploaded() {
       const srcImg = document.querySelector('#printArea img');
       if (!srcImg) { toaster('Please upload an image first.'); return; }
@@ -388,33 +388,31 @@
       const printOnly = document.getElementById('printOnly');
       printOnly.innerHTML = '';
 
-      // Clone the image (keeps blob/data URL)
       const clone = new Image();
-      clone.src = srcImg.src;
+      clone.src = srcImg.src;   // works for blob: and data:
       clone.alt = 'print';
       printOnly.appendChild(clone);
 
-      // Toggle print-only mode so CSS hides everything but #printOnly
+      printingJustImage = true;
       document.body.classList.add('printing-only');
 
-      const cleanup = () => {
-        document.body.classList.remove('printing-only');
-        printOnly.innerHTML = '';
-        window.onafterprint = null;
+      // Ensure layout is applied before calling print:
+      const doPrint = () => {
+        // tiny delay helps Chrome Android/TWA apply styles before generating preview
+        setTimeout(() => window.print(), 50);
       };
 
-      window.onafterprint = cleanup;
-
-      // Wait for the cloned image to be ready, then print
-      const go = () => window.print();
       if ('decode' in clone) {
-        clone.decode().then(go).catch(go);
+        clone.decode().then(doPrint).catch(doPrint);
       } else if (clone.complete) {
-        go();
+        doPrint();
       } else {
-        clone.onload = go;
-        clone.onerror = go;
+        clone.onload = doPrint;
+        clone.onerror = doPrint;
       }
+
+      // Fallback cleanup in case afterprint doesn't fire (rare)
+      window.onafterprint = cleanupPrintOnly;
     }
 
     document.getElementById('year').textContent=new Date().getFullYear();
