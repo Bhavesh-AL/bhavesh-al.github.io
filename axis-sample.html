@@ -11,11 +11,9 @@
   <style>
     html, body {
       touch-action: pan-x pan-y;
-      -ms-touch-action: pan-x pan-y;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
-
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
     body {
@@ -28,13 +26,8 @@
     }
 
     :root {
-      --axis:#A10054;
-      --hitachi:#E60012;
-      --ink:#111827;
-      --muted:#6b7280;
-      --bg:#f8fafc;
-      --card:#ffffff;
-      --shadow:0 10px 30px rgba(0,0,0,.06), 0 2px 10px rgba(0,0,0,.04);
+      --axis:#A10054; --hitachi:#E60012; --ink:#111827; --muted:#6b7280;
+      --bg:#f8fafc; --card:#ffffff; --shadow:0 10px 30px rgba(0,0,0,.06), 0 2px 10px rgba(0,0,0,.04);
       --radius:20px;
     }
 
@@ -47,15 +40,9 @@
     .container{max-width:1100px;margin:0 auto;padding:0 20px}
     .grid{display:grid;gap:20px}
 
-    header{
-      position:sticky;top:0;z-index:10;
-      background:linear-gradient(90deg,var(--axis),var(--hitachi));
-      color:#fff;box-shadow:var(--shadow)
-    }
+    header{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,var(--axis),var(--hitachi));color:#fff;box-shadow:var(--shadow)}
     .topbar{display:flex;align-items:center;justify-content:space-between;height:64px}
-    .brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.3px}
-    .brand .mark{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:#fff;color:#111;box-shadow:inset 0 0 0 2px rgba(0,0,0,.05)}
-    .brand small{opacity:.9;font-weight:600}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:700}
     nav.actions{display:flex;gap:10px}
     .btn{appearance:none;border:0;border-radius:999px;padding:10px 16px;font-weight:600;cursor:pointer}
     .btn.solid{background:#fff;color:#111}
@@ -73,8 +60,6 @@
     .title{font-size:clamp(24px,4vw,42px);line-height:1.1;margin:0;color:var(--ink)}
     .subtitle{margin:0;color:var(--muted)}
     .cta{display:flex;flex-wrap:wrap;gap:12px}
-    .cta .btn.primary{background:linear-gradient(90deg,var(--axis),var(--hitachi));color:#fff}
-    .cta .btn.outline{background:transparent;color:var(--axis);outline:2px solid rgba(161,0,84,.3)}
 
     .features{padding:40px 0}
     .cards{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
@@ -104,35 +89,36 @@
       pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
-    /* -------- PRINT-ONLY MODE FOR IMAGE-ONLY PRINTS -------- */
-    #printOnly { display: none; }
-    body.printing-only #printOnly { display: block; }
+    /* -------- PRINT OVERLAY (only visible while printing image) -------- */
+    #printOverlay{
+      position:fixed; inset:0; background:#fff;
+      display:none; align-items:center; justify-content:center;
+      z-index:9999; /* above everything */
+    }
+    #printOverlay img{max-width:100%; max-height:100%; display:block}
+
+    /* When printing-image mode is on, show overlay and hide everything else */
+    body.printing-image #printOverlay{display:flex;}
 
     @media print {
-      /* Hide absolutely everything in image-only mode... */
-      body.printing-only * { display: none !important; }
-      /* ...except the image container */
-      body.printing-only #printOnly,
-      body.printing-only #printOnly * { display: block !important; }
-
+      /* Hide everything when printing-image is active... */
+      body.printing-image *{display:none !important;}
+      /* ...except the overlay and its contents */
+      body.printing-image #printOverlay,
+      body.printing-image #printOverlay *{display:flex !important;}
+      /* Edge-to-edge */
       @page { margin: 0; }
-      body.printing-only { margin: 0; }
-      #printOnly img { width: 100%; height: auto; }
+      body.printing-image { margin: 0; }
     }
 
-    /* -------- NORMAL WHOLE-PAGE PRINTS (when NOT printing-only) -------- */
+    /* Optional: whole-page print cleanup when NOT printing image */
     @media print {
-      body:not(.printing-only) header,
-      body:not(.printing-only) .hero,
-      body:not(.printing-only) footer,
-      body:not(.printing-only) nav.actions,
-      body:not(.printing-only) .toast { display: none !important; }
-
-      body:not(.printing-only) { margin: 0; }
-      /* Optional for 80mm receipts on whole-page prints:
-      @page { size: 80mm auto; margin: 0; }
-      body:not(.printing-only) { font-family: monospace; font-size: 12pt; }
-      */
+      body:not(.printing-image) header,
+      body:not(.printing-image) .hero,
+      body:not(.printing-image) footer,
+      body:not(.printing-image) nav.actions,
+      body:not(.printing-image) .toast { display: none !important; }
+      body:not(.printing-image) { margin: 0; }
     }
   </style>
 </head>
@@ -141,17 +127,8 @@
   <header class="safe">
     <div class="container topbar">
       <div class="brand" aria-label="Hitachi Axis">
-        <span class="mark" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
-            <rect x="2" y="3" width="6" height="18" rx="2" fill="#A10054"/>
-            <rect x="16" y="3" width="6" height="18" rx="2" fill="#E60012"/>
-            <rect x="7" y="10.5" width="10" height="3" rx="1.5" fill="#111"/>
-          </svg>
-        </span>
-        <div>
-          <div style="font-size:15px;line-height:1">Hitachi Axis</div>
-          <small style="opacity:.85">Digital Banking</small>
-        </div>
+        <span class="pill">Hitachi Axis</span>
+        <small style="opacity:.85;margin-left:8px">Digital Banking</small>
       </div>
 
       <nav class="actions" aria-label="Primary">
@@ -164,10 +141,11 @@
   </header>
 
   <main>
+    <!-- HERO -->
     <section class="hero safe">
       <div class="container">
         <div class="card" style="text-align:left;max-width:760px;margin:0 auto">
-          <span class="pill"><span class="icon" aria-hidden="true">🔒</span> Secure • Fast • 24×7</span>
+          <span class="pill"><span aria-hidden="true">🔒</span> Secure • Fast • 24×7</span>
           <h1 class="title">Axis Digital Savings Account — powered by Hitachi experience.</h1>
           <p class="subtitle">Open in minutes, manage everything in a single place, and enjoy enterprise-grade security backed by Hitachi.</p>
           <div class="cta">
@@ -175,38 +153,28 @@
             <a class="btn outline" href="#features" onclick="scrollToId('features');return false;">Explore features</a>
           </div>
           <div class="row" style="gap:14px;color:var(--muted)">
-            <span class="row"><span class="icon" aria-hidden="true">✅</span> Zero paperwork</span>
-            <span class="row"><span class="icon" aria-hidden="true">🛡️</span> RBI-compliant KYC</span>
-            <span class="row"><span class="icon" aria-hidden="true">⚡</span> Real-time onboarding</span>
+            <span class="row">✅ Zero paperwork</span>
+            <span class="row">🛡️ RBI-compliant KYC</span>
+            <span class="row">⚡ Real-time onboarding</span>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- FEATURES -->
     <section id="features" class="features safe">
       <div class="container">
         <h2 style="margin:0 0 14px">Why customers love it</h2>
         <div class="grid cards">
-          <article class="card">
-            <div class="row"><span class="icon">📱</span><h3>Unified dashboard</h3></div>
-            <p>Track balances, cards, and investments in one glance — optimized for TWA full-screen.</p>
-          </article>
-          <article class="card">
-            <div class="row"><span class="icon">🧠</span><h3>Smart insights</h3></div>
-            <p>Spending categorization and bill reminders, powered by lightweight on-device logic.</p>
-          </article>
-          <article class="card">
-            <div class="row"><span class="icon">🛡️</span><h3>Secure by design</h3></div>
-            <p>HTTPS everywhere, CSP-friendly, and ready for kiosk deployments.</p>
-          </article>
-          <article class="card">
-            <div class="row"><span class="icon">⚙️</span><h3>TWA-ready</h3></div>
-            <p>No browser UI. Use Digital Asset Links to launch this page as a Trusted Web Activity.</p>
-          </article>
+          <article class="card"><strong>📱 Unified dashboard</strong><p>Optimized for TWA full-screen.</p></article>
+          <article class="card"><strong>🧠 Smart insights</strong><p>Spending categorization & reminders.</p></article>
+          <article class="card"><strong>🛡️ Secure by design</strong><p>HTTPS, CSP-friendly, kiosk-ready.</p></article>
+          <article class="card"><strong>⚙️ TWA-ready</strong><p>Launch via Digital Asset Links.</p></article>
         </div>
       </div>
     </section>
 
+    <!-- PRODUCTS -->
     <section id="products" class="product-strip safe">
       <div class="container">
         <h2 style="margin:0 0 14px">Products</h2>
@@ -215,7 +183,7 @@
             <span class="tag">Savings</span>
             <strong>Digital Savings Account</strong>
             <p class="muted">Zero paperwork onboarding with video KYC.</p>
-            <div class="cta"><a class="btn primary" href="#" onclick="primaryCTA();return false;">Apply now</a></div>
+            <div class="cta"><a class="btn outline" href="#" onclick="primaryCTA();return false;">Apply now</a></div>
           </div>
           <div class="card">
             <span class="tag" style="background:var(--hitachi);color:#fff;padding:6px 10px;border-radius:999px;font-size:12px;">Credit</span>
@@ -233,23 +201,15 @@
       </div>
     </section>
 
+    <!-- CONTACT -->
     <section class="safe" aria-labelledby="contact">
       <div class="container">
         <h2 id="contact" style="margin:0 0 14px">Need help?</h2>
         <div class="card">
           <form class="grid" style="grid-template-columns:1fr;gap:12px" onsubmit="return fakeSubmit(event)">
-            <label>
-              <span>Name</span><br/>
-              <input required class="field" type="text" placeholder="Your name" />
-            </label>
-            <label>
-              <span>Email</span><br/>
-              <input required class="field" type="email" placeholder="you@example.com" />
-            </label>
-            <label>
-              <span>Message</span><br/>
-              <textarea class="field" rows="4" placeholder="How can we help?"></textarea>
-            </label>
+            <label><span>Name</span><br/><input required class="field" type="text" placeholder="Your name" /></label>
+            <label><span>Email</span><br/><input required class="field" type="email" placeholder="you@example.com" /></label>
+            <label><span>Message</span><br/><textarea class="field" rows="4" placeholder="How can we help?"></textarea></label>
             <button class="btn primary" type="submit">Send message</button>
             <small class="legal">Demo form — does not send data.</small>
           </form>
@@ -257,7 +217,7 @@
       </div>
     </section>
 
-    <!-- Upload & Print -->
+    <!-- ✅ UPLOAD & PRINT -->
     <section id="uploadSection" class="safe">
       <div class="container">
         <div class="card">
@@ -270,6 +230,7 @@
             <span id="fileName" class="file-name muted"></span>
           </div>
 
+          <!-- Preview container -->
           <div id="printArea">
             <div class="placeholder">No file selected yet.</div>
           </div>
@@ -287,8 +248,8 @@
     </div>
   </footer>
 
-  <!-- Print-only container (only visible during image-only print) -->
-  <div id="printOnly" aria-hidden="true"></div>
+  <!-- 🔒 Print overlay used only during image printing -->
+  <div id="printOverlay" aria-hidden="true"></div>
 
   <script>
     function setVh(){document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');}
@@ -303,10 +264,7 @@
     function primaryCTA(){toaster('Opening account flow (demo)')}
     function fakeSubmit(e){e.preventDefault();toaster('Thanks! Team will reach out.');return false}
 
-    function printPage(){
-      toaster('Opening print dialog...');
-      window.print();
-    }
+    function printPage(){ toaster('Opening print dialog...'); window.print(); }
 
     const fileInput = document.getElementById('fileInput');
     const fileNameEl = document.getElementById('fileName');
@@ -328,8 +286,7 @@
 
       if (type.startsWith('image/')) {
         const img = document.createElement('img');
-        img.src = url;
-        img.alt = file.name;
+        img.src = url; img.alt = file.name;
         printArea.appendChild(img);
         toaster('Image ready for print');
         return;
@@ -354,80 +311,47 @@
 
       const info = document.createElement('div');
       info.className = 'placeholder';
-      info.textContent = 'Unsupported file type for preview. Try image, PDF, or text.';
+      info.textContent = 'Unsupported file type. Try image, PDF, or text.';
       printArea.appendChild(info);
     });
 
-    // ---- Image-only print flow (prevents extra pages) ----
-    let printingJustImage = false;
+    // 🔧 Print only the uploaded image — shows ONLY the image in preview
+    function printUploaded(){
+      const srcImg = document.querySelector('#printArea img');
+      if (!srcImg) { toaster('Please upload an image first.'); return; }
 
-    // Make sure our print-only class is applied even if Chrome fires beforeprint early
-    window.addEventListener('beforeprint', () => {
-      if (printingJustImage) {
-        document.body.classList.add('printing-only');
+      const overlay = document.getElementById('printOverlay');
+      overlay.innerHTML = '';
+      const clone = new Image();
+      clone.alt = 'print';
+      clone.src = srcImg.src; // supports blob: and data: URLs
+      overlay.appendChild(clone);
+
+      // Enter printing mode (overlay visible, everything else hidden during @media print)
+      document.body.classList.add('printing-image');
+
+      const cleanup = () => {
+        document.body.classList.remove('printing-image');
+        overlay.innerHTML = '';
+        window.onafterprint = null;
+      };
+      window.onafterprint = cleanup;
+
+      const go = () => {
+        // give the browser a tiny moment to apply layout before generating preview
+        setTimeout(() => window.print(), 50);
+      };
+
+      if ('decode' in clone) {
+        clone.decode().then(go).catch(go);
+      } else if (clone.complete) {
+        go();
+      } else {
+        clone.onload = go;
+        clone.onerror = go;
       }
-    });
-
-    window.addEventListener('afterprint', () => {
-      if (printingJustImage) {
-        cleanupPrintOnly();
-      }
-    });
-
-    function cleanupPrintOnly() {
-      document.body.classList.remove('printing-only');
-      document.getElementById('printOnly').innerHTML = '';
-      printingJustImage = false;
-      window.onafterprint = null;
     }
 
-    async function printUploaded(){
-    const img = document.querySelector('#printArea img');
-    if (!img) { toaster('Please upload an image first.'); return; }
-
-    // Make a self-contained data URL (avoids blob/CORS issues)
-    const dataUrl = await (async () => {
-      if (img.src.startsWith('data:')) return img.src;
-      await (img.decode?.() ?? Promise.resolve());
-      const c = document.createElement('canvas');
-      c.width  = img.naturalWidth || img.width;
-      c.height = img.naturalHeight || img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
-      return c.toDataURL('image/png');
-    })();
-
-    const frame = document.createElement('iframe');
-    frame.style.position = 'fixed';
-    frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
-    frame.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(frame);
-
-    const doc = frame.contentDocument || frame.contentWindow.document;
-    doc.open();
-    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print</title>
-      <style>
-        @page { margin: 0; }         /* edge-to-edge */
-        html, body { margin:0; padding:0; }
-        img { width:100%; height:auto; display:block; }
-        /* For 80mm receipts, uncomment:
-        @page { size: 80mm auto; margin: 0; }
-        body { width: 80mm; }
-        */
-      </style>
-    </head><body>
-      <img id="pimg" src="${dataUrl}" alt="print">
-      <script>
-        const go=()=>{ try{ window.focus(); window.print(); }catch(e){} };
-        const i=document.getElementById('pimg');
-        if(i.complete) go(); else { i.onload=go; i.onerror=go; }
-        setTimeout(()=>{ try{ window.stop(); }catch(e){} }, 2000);
-      <\\/script>
-    </body></html>`);
-    doc.close();
-
-    // Clean up the iframe after the dialog appears
-    setTimeout(() => frame.remove(), 4000);
-  }
     document.getElementById('year').textContent=new Date().getFullYear();
   </script>
 
