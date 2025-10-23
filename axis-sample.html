@@ -58,12 +58,8 @@
     }
     .hero .card{display:grid;gap:22px;background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:var(--shadow)}
     .pill{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--axis);background:rgba(161,0,84,.08);padding:8px 12px;border-radius:999px}
-    
-    header .pill {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.16);
-    }
-    
+    header .pill { color:#fff;background:rgba(255,255,255,.16) }
+
     .title{font-size:clamp(24px,4vw,42px);line-height:1.1;margin:0;color:var(--ink)}
     .subtitle{margin:0;color:var(--muted)}
     .cta{display:flex;flex-wrap:wrap;gap:12px}
@@ -96,39 +92,12 @@
       pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
-    /* These overlay styles are no longer used for printing, but we can keep them */
-    #printOverlay{
-      position:fixed; inset:0; background:#fff;
-      display:none; align-items:center; justify-content:center;
-      z-index:9999; 
-    }
-    #printOverlay img{max-width:100%; max-height:100%; display:block}
-    body.printing-image #printOverlay{display:flex;}
-    
-    
-    /* -------- PRINT STYLES -------- */
-    /* This block now ONLY handles the "Print Page" button */
+    /* Regular whole-page print (Print Page button) */
     @media print {
-      /* Hide elements when printing the *whole page* */
-      body:not(.printing-image) header,
-      body:not(.printing-image) .hero,
-      body:not(.printing-image) footer,
-      body:not(.printing-image) nav.actions,
-      body:not(.printing-image) .toast,
-      body:not(.printing-image) #printOverlay { 
-        display: none !important; 
-      }
-      
-      body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-      }
-      @page {
-        margin: 1cm; /* Add some margin for regular page prints */
-      }
+      body { margin:0 }
+      header, .hero, footer, nav.actions, .toast { display: none !important; }
+      @page { margin: 1cm; }
     }
-    
   </style>
 </head>
 
@@ -222,6 +191,7 @@
       </div>
     </section>
 
+    <!-- ✅ UPLOAD & PRINT -->
     <section id="uploadSection" class="safe">
       <div class="container">
         <div class="card">
@@ -251,12 +221,10 @@
     </div>
   </footer>
 
-  <div id="printOverlay" aria-hidden="true"></div>
-
   <script>
+    // Helpers
     function setVh(){document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');}
     setVh(); addEventListener('resize', setVh);
-
     function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});}
     function toaster(msg){
       let t=document.querySelector('.toast');
@@ -265,9 +233,10 @@
     }
     function primaryCTA(){toaster('Opening account flow (demo)')}
     function fakeSubmit(e){e.preventDefault();toaster('Thanks! Team will reach out.');return false}
-
     function printPage(){ toaster('Opening print dialog...'); window.print(); }
+    document.getElementById('year').textContent=new Date().getFullYear();
 
+    // Preview logic
     const fileInput = document.getElementById('fileInput');
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
@@ -276,11 +245,7 @@
       const file = e.target.files?.[0];
       printArea.innerHTML = '';
       fileNameEl.textContent = '';
-
-      if (!file) {
-        printArea.innerHTML = '<div class="placeholder">No file selected yet.</div>';
-        return;
-      }
+      if (!file) { printArea.innerHTML = '<div class="placeholder">No file selected yet.</div>'; return; }
 
       fileNameEl.textContent = file.name;
       const type = file.type || '';
@@ -293,7 +258,6 @@
         toaster('Image ready for print');
         return;
       }
-
       if (type === 'application/pdf') {
         const iframe = document.createElement('iframe');
         iframe.src = url;
@@ -301,7 +265,6 @@
         toaster('PDF preview shown (Print Uploaded prints images only)');
         return;
       }
-
       if (type === 'text/plain' || file.name.endsWith('.txt')) {
         const text = await file.text();
         const pre = document.createElement('pre');
@@ -310,86 +273,70 @@
         toaster('Text preview shown (Print Uploaded prints images only)');
         return;
       }
-
       const info = document.createElement('div');
       info.className = 'placeholder';
       info.textContent = 'Unsupported file type. Try image, PDF, or text.';
       printArea.appendChild(info);
     });
 
-    
-    /* * ===================================================================
-     * ✅ NEW 'printUploaded' FUNCTION (POP-UP METHOD)
-     * ===================================================================
-     */
-    function printUploaded() {
-      const srcImg = document.querySelector('#printArea img');
-      if (!srcImg) {
-        toaster('Please upload an image first.');
-        return;
-      }
+    // ✅ Print ONLY the uploaded image via a hidden iframe using srcdoc (no popups, TWA-safe)
+    async function printUploaded() {
+      const imgEl = document.querySelector('#printArea img');
+      if (!imgEl) { toaster('Please upload an image first.'); return; }
 
-      const imageUrl = srcImg.src;
+      // Convert to data URL to avoid blob/CORS lifecycle issues in the iframe
+      const dataUrl = await (async () => {
+        if (imgEl.src.startsWith('data:')) return imgEl.src;
+        // Wait for the preview image to be fully decoded
+        try { if (imgEl.decode) await imgEl.decode(); } catch(_) {}
+        const c = document.createElement('canvas');
+        c.width  = imgEl.naturalWidth || imgEl.width;
+        c.height = imgEl.naturalHeight || imgEl.height;
+        c.getContext('2d').drawImage(imgEl, 0, 0);
+        return c.toDataURL('image/png'); // use 'image/jpeg' if your scans are JPEGs
+      })();
 
-      // Open a new, blank window
-      const printWindow = window.open('', '_blank');
-      
-      if (!printWindow) {
-        toaster('Please allow pop-ups for this to work.');
-        return;
-      }
-
-      // Write the minimal HTML to the new window
-      printWindow.document.write(`
-        <!DOCTYPE html>
+      // Minimal printable document that self-prints
+      const html = `
+        <!doctype html>
         <html>
-        <head>
-          <title>Print Image</title>
-          <style>
-            body { margin: 0; padding: 0; }
-            @page { 
-              margin: 0; /* Remove default printer margins */
-              size: auto; 
-            }
-            img {
-              max-width: 100%;
-              max-height: 100vh;
-              width: 100%;
-              height: auto;
-              object-fit: contain; /* Fit image within the page */
-              display: block;
-            }
-          </style>
-        </head>
-        <body>
-          <img src="${imageUrl}" alt="Uploaded Image" />
-        </body>
-        </html>
-      `);
+          <head>
+            <meta charset="utf-8">
+            <title>Print</title>
+            <style>
+              @page { margin: 0; }                  /* edge-to-edge */
+              html, body { margin: 0; padding: 0; background: #fff; }
+              img { width: 100%; height: auto; display: block; }
+              /* For 80mm thermal printers, uncomment:
+              @page { size: 80mm auto; margin: 0; }
+              body { width: 80mm; }
+              */
+            </style>
+          </head>
+          <body>
+            <img id="pimg" src="${dataUrl}" alt="print">
+            <script>
+              // Print INSIDE the iframe so only this document is previewed
+              const go = () => { try { window.focus(); window.print(); } catch(e){} };
+              const i = document.getElementById('pimg');
+              if (i.complete) go(); else { i.onload = go; i.onerror = go; }
+            <\\/script>
+          </body>
+        </html>`;
 
-      printWindow.document.close(); // Finish writing
+      // Hidden iframe (same-origin via srcdoc)
+      const frame = document.createElement('iframe');
+      frame.style.position = 'fixed';
+      frame.style.right = '0'; frame.style.bottom = '0';
+      frame.style.width = '0'; frame.style.height = '0';
+      frame.style.border = '0';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.srcdoc = html;
+      document.body.appendChild(frame);
 
-      // Wait for the image to fully load in the new window
-      const printImage = printWindow.document.querySelector('img');
-
-      if (printImage.complete) {
-        // Image was already loaded (e.g., cached blob)
-        printWindow.print();
-        printWindow.close();
-      } else {
-        // Wait for the image to finish loading
-        printImage.onload = function() {
-          printWindow.print();
-          printWindow.close();
-        };
-      }
+      // Cleanup after preview opens (Android may not fire afterprint)
+      setTimeout(() => frame.remove(), 4000);
     }
-    /* * ===============================================
-     * END OF NEW FUNCTION
-     * ===============================================
-     */
-
-    document.getElementById('year').textContent=new Date().getFullYear();
   </script>
 
   <div class="toast" aria-live="polite"></div>
