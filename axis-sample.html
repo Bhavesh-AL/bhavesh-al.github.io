@@ -6,7 +6,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#A10054" />
-  <title>Hitachi Axis — TWA Full-Screen Demo</title>
+  <title>Hitachi Axis — TWA Full-Screen Demo 1</title>
 
   <style>
     html, body {
@@ -245,8 +245,10 @@
       const file = e.target.files?.[0];
       printArea.innerHTML = '';
       fileNameEl.textContent = '';
-      if (!file) { printArea.innerHTML = '<div class="placeholder">No file selected yet.</div>'; return; }
-
+      if (!file) {
+        printArea.innerHTML = '<div class="placeholder">No file selected yet.</div>';
+        return;
+      }
       fileNameEl.textContent = file.name;
       const type = file.type || '';
       const url = URL.createObjectURL(file);
@@ -279,63 +281,81 @@
       printArea.appendChild(info);
     });
 
-    // ✅ Print ONLY the uploaded image via a hidden iframe using srcdoc (no popups, TWA-safe)
+    // ---------- ONLY-IMAGE PRINT CSS (injected once) ----------
+    function ensureOnlyImagePrintCSS() {
+      if (document.getElementById('onlyImagePrintCSS')) return;
+      const style = document.createElement('style');
+      style.id = 'onlyImagePrintCSS';
+      style.textContent = `
+        @media print {
+          /* Hide the entire app DOM */
+          * { display: none !important; visibility: hidden !important; }
+
+          /* Allow full-page use */
+          html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
+
+          /* Show only our print container and its contents */
+          #__onlyPrint, #__onlyPrint * {
+            display: block !important;
+            visibility: visible !important;
+          }
+
+          /* Make the image fill width, keep aspect */
+          #__onlyPrint { margin: 0 !important; padding: 0 !important; }
+          #__onlyPrint img { width: 100% !important; height: auto !important; }
+
+          /* For 80mm thermal, uncomment:
+          @page { size: 80mm auto; margin: 0; }
+          body { width: 80mm !important; }
+          */
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // ✅ Print ONLY the uploaded image — uses the aggressive print CSS and prints immediately
     async function printUploaded() {
-      const imgEl = document.querySelector('#printArea img');
-      if (!imgEl) { toaster('Please upload an image first.'); return; }
+      ensureOnlyImagePrintCSS();
 
-      // Convert to data URL to avoid blob/CORS lifecycle issues in the iframe
-      const dataUrl = await (async () => {
-        if (imgEl.src.startsWith('data:')) return imgEl.src;
-        // Wait for the preview image to be fully decoded
-        try { if (imgEl.decode) await imgEl.decode(); } catch(_) {}
-        const c = document.createElement('canvas');
-        c.width  = imgEl.naturalWidth || imgEl.width;
-        c.height = imgEl.naturalHeight || imgEl.height;
-        c.getContext('2d').drawImage(imgEl, 0, 0);
-        return c.toDataURL('image/png'); // use 'image/jpeg' if your scans are JPEGs
-      })();
+      const srcImg = document.querySelector('#printArea img');
+      if (!srcImg) { toaster('Please upload an image first.'); return; }
 
-      // Minimal printable document that self-prints
-      const html = `
-        <!doctype html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Print</title>
-            <style>
-              @page { margin: 0; }                  /* edge-to-edge */
-              html, body { margin: 0; padding: 0; background: #fff; }
-              img { width: 100%; height: auto; display: block; }
-              /* For 80mm thermal printers, uncomment:
-              @page { size: 80mm auto; margin: 0; }
-              body { width: 80mm; }
-              */
-            </style>
-          </head>
-          <body>
-            <img id="pimg" src="${dataUrl}" alt="print">
-            <script>
-              // Print INSIDE the iframe so only this document is previewed
-              const go = () => { try { window.focus(); window.print(); } catch(e){} };
-              const i = document.getElementById('pimg');
-              if (i.complete) go(); else { i.onload = go; i.onerror = go; }
-            </script>
-          </body>
-        </html>`;
+      // Create / reuse the print-only container
+      let holder = document.getElementById('__onlyPrint');
+      if (!holder) {
+        holder = document.createElement('div');
+        holder.id = '__onlyPrint';
+        document.body.appendChild(holder);
+      }
+      holder.innerHTML = '';
 
-      // Hidden iframe (same-origin via srcdoc)
-      const frame = document.createElement('iframe');
-      frame.style.position = 'fixed';
-      frame.style.right = '0'; frame.style.bottom = '0';
-      frame.style.width = '0'; frame.style.height = '0';
-      frame.style.border = '0';
-      frame.setAttribute('aria-hidden', 'true');
-      frame.srcdoc = html;
-      document.body.appendChild(frame);
+      // Clone the image (so no layout baggage)
+      const clone = new Image();
+      clone.alt = 'print';
+      clone.src = srcImg.src;             // blob: or data: works
+      clone.style.width = '100%';
+      clone.style.height = 'auto';
+      holder.appendChild(clone);
 
-      // Cleanup after preview opens (Android may not fire afterprint)
-      setTimeout(() => frame.remove(), 4000);
+      // Keep the click's user-activation: call print() right here
+      const go = () => {
+        try { window.print(); } catch (e) {}
+        setTimeout(() => { holder.innerHTML = ''; }, 500); // light cleanup
+      };
+
+      if (clone.complete) {
+        go();
+      } else {
+        try {
+          if (clone.decode) {
+            await clone.decode(); // usually very fast for blob/data
+            go();
+          } else {
+            clone.onload = go;
+            clone.onerror = go;
+          }
+        } catch (_) { go(); }
+      }
     }
   </script>
 
