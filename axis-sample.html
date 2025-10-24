@@ -6,7 +6,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#A10054" />
-  <title>Hitachi Axis — TWA Full-Screen Demo 2</title>
+  <title>Hitachi Axis 3 — TWA Full-Screen Demo</title>
 
   <style>
     html, body {
@@ -92,7 +92,7 @@
       pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
-    /* Regular whole-page print (Print Page button) */
+    /* Whole-page print (Print Page button) */
     @media print {
       body { margin:0 }
       header, .hero, footer, nav.actions, .toast { display: none !important; }
@@ -281,98 +281,83 @@
       printArea.appendChild(info);
     });
 
-    // ---------- ONLY-IMAGE PRINT CSS (injected once) ----------
-    // ---------- ONLY-IMAGE PRINT CSS (injected once) ----------
-    function ensureOnlyImagePrintCSS() {
-      if (document.getElementById('onlyImagePrintCSS')) return;
-      const style = document.createElement('style');
-      style.id = 'onlyImagePrintCSS';
-      style.textContent = `
-        @media print {
-          /* CHANGED: Hide all direct children of body, 
-          EXCEPT our print holder. This leaves <body> visible.
-        */
-          body > :not(#__onlyPrint) {
-            display: none !important;
-            visibility: hidden !important;
-          }
+    // ---------- inject print-only CSS that hides siblings, not the world ----------
+    function ensureOnlyImagePrintCSS() {
+      if (document.getElementById('onlyImagePrintCSS')) return;
+      const style = document.createElement('style');
+      style.id = 'onlyImagePrintCSS';
+      style.textContent = `
+        @media print {
+          /* Hide everything EXCEPT the dedicated print container */
+          body > :not(#__onlyPrint) { display: none !important; }
 
-          /* Ensure html/body are visible and reset */
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            display: block !important; /* Make sure they are rendered */
-            visibility: visible !important;
-          }
+          /* Use the full page; image scales */
+          html, body { margin: 0 !important; padding: 0 !important; }
+          #__onlyPrint { display: block !important; margin: 0 !important; padding: 0 !important; }
+          #__onlyPrint img { width: 100% !important; height: auto !important; }
 
-          /* Show only our print container and its contents */
-          #__onlyPrint, #__onlyPrint * {
-            display: block !important;
-            visibility: visible !important;
-          }
-
-          /* Make the image fill width, keep aspect */
-          #__onlyPrint { margin: 0 !important; padding: 0 !important; }
-          #__onlyPrint img { width: 100% !important; height: auto !important; }
-
-        /* ADDED: Ensure edge-to-edge printing */
-        @page { 
-          size: auto; /* Use printer's default paper size */
-          margin: 0; 
+          /* For 80mm thermal, uncomment:
+          @page { size: 80mm auto; margin: 0; }
+          body { width: 80mm !important; }
+          */
         }
+      `;
+      document.head.appendChild(style);
+    }
 
-          /* For 80mm thermal, uncomment:
-          @page { size: 80mm auto; margin: 0; }
-          body { width: 80mm !important; }
-          */
-        }
-      `;
-      document.head.appendChild(style);
-    }
-    // ✅ Print ONLY the uploaded image — uses the aggressive print CSS and prints immediately
+    // ✅ Print ONLY the uploaded image — robust on Android/TWA
     async function printUploaded() {
       ensureOnlyImagePrintCSS();
 
       const srcImg = document.querySelector('#printArea img');
       if (!srcImg) { toaster('Please upload an image first.'); return; }
 
-      // Create / reuse the print-only container
+      // Convert to a data URL to avoid blob lifecycle issues
+      let dataUrl;
+      try {
+        if (srcImg.src.startsWith('data:')) {
+          dataUrl = srcImg.src;
+        } else {
+          if (srcImg.decode) { try { await srcImg.decode(); } catch(e){} }
+          const c = document.createElement('canvas');
+          c.width  = srcImg.naturalWidth || srcImg.width;
+          c.height = srcImg.naturalHeight || srcImg.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(srcImg, 0, 0);
+          dataUrl = c.toDataURL('image/png');
+        }
+      } catch (e) {
+        toaster('Could not prepare image for printing');
+        return;
+      }
+
+      // Create (or reuse) the print-only container as the LAST child of body
       let holder = document.getElementById('__onlyPrint');
       if (!holder) {
         holder = document.createElement('div');
         holder.id = '__onlyPrint';
         document.body.appendChild(holder);
+      } else {
+        document.body.appendChild(holder); // ensure it’s last
       }
       holder.innerHTML = '';
 
-      // Clone the image (so no layout baggage)
-      const clone = new Image();
-      clone.alt = 'print';
-      clone.src = srcImg.src;             // blob: or data: works
-      clone.style.width = '100%';
-      clone.style.height = 'auto';
-      holder.appendChild(clone);
+      const img = new Image();
+      img.alt = 'print';
+      img.src = dataUrl;
+      img.style.width = '100%';
+      img.style.height = 'auto';
+      holder.appendChild(img);
 
-      // Keep the click's user-activation: call print() right here
-      const go = () => {
-        try { window.print(); } catch (e) {}
-        setTimeout(() => { holder.innerHTML = ''; }, 500); // light cleanup
-      };
+      // Force layout to notice the new content before printing
+      // (two RAFs is a reliable flush on Android)
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      if (clone.complete) {
-        go();
-      } else {
-        try {
-          if (clone.decode) {
-            await clone.decode(); // usually very fast for blob/data
-            go();
-          } else {
-            clone.onload = go;
-            clone.onerror = go;
-          }
-        } catch (_) { go(); }
-      }
+      // Now open the system/Chrome print dialog – preview will show ONLY #__onlyPrint
+      try { window.print(); } catch (e) {}
+
+      // Optional cleanup after a moment
+      setTimeout(() => { holder.innerHTML = ''; }, 1000);
     }
   </script>
 
