@@ -6,7 +6,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#A10054" />
-  <title>Hitachi Axis — TWA Full-Screen Demo 1</title>
+  <title>Hitachi Axis — TWA Full-Screen Demo 2</title>
 
   <style>
     html, body {
@@ -282,37 +282,54 @@
     });
 
     // ---------- ONLY-IMAGE PRINT CSS (injected once) ----------
-    function ensureOnlyImagePrintCSS() {
-      if (document.getElementById('onlyImagePrintCSS')) return;
-      const style = document.createElement('style');
-      style.id = 'onlyImagePrintCSS';
-      style.textContent = `
-        @media print {
-          /* Hide the entire app DOM */
-          * { display: none !important; visibility: hidden !important; }
+    // ---------- ONLY-IMAGE PRINT CSS (injected once) ----------
+    function ensureOnlyImagePrintCSS() {
+      if (document.getElementById('onlyImagePrintCSS')) return;
+      const style = document.createElement('style');
+      style.id = 'onlyImagePrintCSS';
+      style.textContent = `
+        @media print {
+          /* CHANGED: Hide all direct children of body, 
+          EXCEPT our print holder. This leaves <body> visible.
+        */
+          body > :not(#__onlyPrint) {
+            display: none !important;
+            visibility: hidden !important;
+          }
 
-          /* Allow full-page use */
-          html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
+          /* Ensure html/body are visible and reset */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            display: block !important; /* Make sure they are rendered */
+            visibility: visible !important;
+          }
 
-          /* Show only our print container and its contents */
-          #__onlyPrint, #__onlyPrint * {
-            display: block !important;
-            visibility: visible !important;
-          }
+          /* Show only our print container and its contents */
+          #__onlyPrint, #__onlyPrint * {
+            display: block !important;
+            visibility: visible !important;
+          }
 
-          /* Make the image fill width, keep aspect */
-          #__onlyPrint { margin: 0 !important; padding: 0 !important; }
-          #__onlyPrint img { width: 100% !important; height: auto !important; }
+          /* Make the image fill width, keep aspect */
+          #__onlyPrint { margin: 0 !important; padding: 0 !important; }
+          #__onlyPrint img { width: 100% !important; height: auto !important; }
 
-          /* For 80mm thermal, uncomment:
-          @page { size: 80mm auto; margin: 0; }
-          body { width: 80mm !important; }
-          */
+        /* ADDED: Ensure edge-to-edge printing */
+        @page { 
+          size: auto; /* Use printer's default paper size */
+          margin: 0; 
         }
-      `;
-      document.head.appendChild(style);
-    }
 
+          /* For 80mm thermal, uncomment:
+          @page { size: 80mm auto; margin: 0; }
+          body { width: 80mm !important; }
+          */
+        }
+      `;
+      document.head.appendChild(style);
+    }
     // ✅ Print ONLY the uploaded image — uses the aggressive print CSS and prints immediately
     async function printUploaded() {
       ensureOnlyImagePrintCSS();
