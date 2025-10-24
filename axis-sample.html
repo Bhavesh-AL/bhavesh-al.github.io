@@ -6,7 +6,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#A10054" />
-  <title>Hitachi Axis 3 — TWA Full-Screen Demo</title>
+  <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
     html, body {
@@ -281,31 +281,54 @@
       printArea.appendChild(info);
     });
 
-    // ---------- inject print-only CSS that hides siblings, not the world ----------
+    // --- Print-only CSS: single-page viewport with object-fit contain ---
     function ensureOnlyImagePrintCSS() {
       if (document.getElementById('onlyImagePrintCSS')) return;
       const style = document.createElement('style');
       style.id = 'onlyImagePrintCSS';
       style.textContent = `
         @media print {
-          /* Hide everything EXCEPT the dedicated print container */
+          /* Use full printable area and remove margins */
+          @page { margin: 0; }
+
+          /* Hide everything except our print container */
           body > :not(#__onlyPrint) { display: none !important; }
 
-          /* Use the full page; image scales */
-          html, body { margin: 0 !important; padding: 0 !important; }
-          #__onlyPrint { display: block !important; margin: 0 !important; padding: 0 !important; }
-          #__onlyPrint img { width: 100% !important; height: auto !important; }
+          /* Make the print container exactly one page */
+          html, body { margin: 0 !important; padding: 0 !important; height: 100vh !important; width: 100vw !important; }
+          #__onlyPrint {
+            display: block !important;
+            position: relative !important;
+            margin: 0 !important; padding: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+            page-break-after: avoid !important;
+          }
 
-          /* For 80mm thermal, uncomment:
+          /* Scale the image to fit entirely on that single page */
+          #__onlyPrint img {
+            position: absolute !important;
+            inset: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain !important;
+            page-break-inside: avoid !important;
+            display: block !important;
+          }
+
+          /* For 80mm thermal printers, you can instead lock the page size:
           @page { size: 80mm auto; margin: 0; }
-          body { width: 80mm !important; }
+          html, body, #__onlyPrint { width: 80mm !important; height: auto !important; }
+          #__onlyPrint img { width: 100% !important; height: auto !important; }
           */
         }
       `;
       document.head.appendChild(style);
     }
 
-    // ✅ Print ONLY the uploaded image — robust on Android/TWA
+    // ✅ Print ONLY the uploaded image — keep it on ONE page
     async function printUploaded() {
       ensureOnlyImagePrintCSS();
 
@@ -322,8 +345,7 @@
           const c = document.createElement('canvas');
           c.width  = srcImg.naturalWidth || srcImg.width;
           c.height = srcImg.naturalHeight || srcImg.height;
-          const ctx = c.getContext('2d');
-          ctx.drawImage(srcImg, 0, 0);
+          c.getContext('2d').drawImage(srcImg, 0, 0);
           dataUrl = c.toDataURL('image/png');
         }
       } catch (e) {
@@ -331,32 +353,28 @@
         return;
       }
 
-      // Create (or reuse) the print-only container as the LAST child of body
+      // Create / reuse the print-only container as the last body child
       let holder = document.getElementById('__onlyPrint');
       if (!holder) {
         holder = document.createElement('div');
         holder.id = '__onlyPrint';
         document.body.appendChild(holder);
       } else {
-        document.body.appendChild(holder); // ensure it’s last
+        document.body.appendChild(holder);
       }
       holder.innerHTML = '';
 
       const img = new Image();
       img.alt = 'print';
       img.src = dataUrl;
-      img.style.width = '100%';
-      img.style.height = 'auto';
       holder.appendChild(img);
 
-      // Force layout to notice the new content before printing
-      // (two RAFs is a reliable flush on Android)
+      // Flush layout so Chrome captures the single-page layout
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      // Now open the system/Chrome print dialog – preview will show ONLY #__onlyPrint
       try { window.print(); } catch (e) {}
 
-      // Optional cleanup after a moment
+      // Optional cleanup
       setTimeout(() => { holder.innerHTML = ''; }, 1000);
     }
   </script>
