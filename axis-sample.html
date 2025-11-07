@@ -13,9 +13,9 @@
       touch-action: pan-x pan-y;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
+      height: 100%;
     }
     *, *::before, *::after { box-sizing: border-box }
-    html, body { height: 100%; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
@@ -281,71 +281,42 @@
       printArea.appendChild(info);
     });
 
-    // --- Print-only CSS: single-page viewport with object-fit contain ---
-    function ensureOnlyImagePrintCSS() {
-      if (document.getElementById('onlyImagePrintCSS')) return;
-      const style = document.createElement('style');
-      style.id = 'onlyImagePrintCSS';
-      style.textContent = `
-        @media print {
-          /* Use full printable area and remove margins */
-          @page { margin: 0; }
-
-          /* Hide everything except our print container */
-          body > :not(#__onlyPrint) { display: none !important; }
-
-          /* Make the print container exactly one page */
-          html, body { margin: 0 !important; padding: 0 !important; height: 100vh !important; width: 100vw !important; }
-          #__onlyPrint {
-            display: block !important;
-            position: relative !important;
-            margin: 0 !important; padding: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            overflow: hidden !important;
-            page-break-after: avoid !important;
-          }
-
-          /* Scale the image to fit entirely on that single page */
-          #__onlyPrint img {
-            position: absolute !important;
-            inset: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain !important;
-            page-break-inside: avoid !important;
-            display: block !important;
-          }
-
-          /* For 80mm thermal printers, you can instead lock the page size:
-          @page { size: 80mm auto; margin: 0; }
-          html, body, #__onlyPrint { width: 80mm !important; height: auto !important; }
-          #__onlyPrint img { width: 100% !important; height: auto !important; }
-          */
-        }
-      `;
-      document.head.appendChild(style);
+    // -----------------------------
+    // Robust print pipeline (iframe)
+    // -----------------------------
+    function getPrintFrame() {
+      let f = document.getElementById('__printFrame');
+      if (!f) {
+        f = document.createElement('iframe');
+        f.id = '__printFrame';
+        f.style.position = 'fixed';
+        f.style.right = '0';
+        f.style.bottom = '0';
+        f.style.width = '0';
+        f.style.height = '0';
+        f.style.border = '0';
+        f.style.visibility = 'hidden';
+        document.body.appendChild(f);
+      }
+      return f;
     }
 
-    // ✅ Print ONLY the uploaded image — keep it on ONE page
     async function printUploaded() {
-      ensureOnlyImagePrintCSS();
-
       const srcImg = document.querySelector('#printArea img');
       if (!srcImg) { toaster('Please upload an image first.'); return; }
 
-      // Convert to a data URL to avoid blob lifecycle issues
+      // Stabilize source (canvas → data URL)
       let dataUrl;
       try {
+        if (srcImg.decode) { try { await srcImg.decode(); } catch(_){} }
         if (srcImg.src.startsWith('data:')) {
           dataUrl = srcImg.src;
         } else {
-          if (srcImg.decode) { try { await srcImg.decode(); } catch(e){} }
           const c = document.createElement('canvas');
-          c.width  = srcImg.naturalWidth || srcImg.width;
-          c.height = srcImg.naturalHeight || srcImg.height;
-          c.getContext('2d').drawImage(srcImg, 0, 0);
+          c.width  = srcImg.naturalWidth || srcImg.width || 1;
+          c.height = srcImg.naturalHeight || srcImg.height || 1;
+          const ctx = c.getContext('2d', { alpha: false });
+          ctx.drawImage(srcImg, 0, 0);
           dataUrl = c.toDataURL('image/png');
         }
       } catch (e) {
@@ -353,32 +324,68 @@
         return;
       }
 
-      // Create / reuse the print-only container as the last body child
-      let holder = document.getElementById('__onlyPrint');
-      if (!holder) {
-        holder = document.createElement('div');
-        holder.id = '__onlyPrint';
-        document.body.appendChild(holder);
-      } else {
-        document.body.appendChild(holder);
-      }
-      holder.innerHTML = '';
+      const frame = getPrintFrame();
+      const doc = frame.contentDocument || frame.contentWindow.document;
 
-      const img = new Image();
-      img.alt = 'print';
-      img.src = dataUrl;
-      holder.appendChild(img);
+      // Minimal print doc (no vh/vw in print)
+      doc.open();
+      doc.write(`
+        <!doctype html><html><head>
+          <meta charset="utf-8">
+          <title>Print</title>
+          <style>
+            html, body { margin:0; padding:0; width:100%; height:100%; }
+            @page { size: A4; margin: 0; }
+            .page {
+              width: 100%; height: 100%;
+              display: grid; place-items: center;
+            }
+            img {
+              display: block;
+              max-width: 100%;
+              max-height: 100%;
+              object-fit: contain;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          </style>
+        </head><body>
+          <div class="page">
+            <img id="toPrint" alt="print">
+          </div>
+        </body></html>
+      `);
+      doc.close();
 
-      // Flush layout so Chrome captures the single-page layout
+      // Wait for frame ready
+      await new Promise(res => {
+        if (frame.contentDocument?.readyState === 'complete') res();
+        else frame.onload = () => res();
+      });
+
+      // Load image, wait decode
+      const img = doc.getElementById('toPrint');
+      await new Promise((res, rej) => {
+        img.onload = () => res();
+        img.onerror = () => rej(new Error('img load failed'));
+        img.src = dataUrl;
+      });
+      if (img.decode) { try { await img.decode(); } catch(_){} }
+
+      // Ensure layout is flushed before print
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      try { window.print(); } catch (e) {}
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+      catch (_) {}
 
       // Optional cleanup
-      setTimeout(() => { holder.innerHTML = ''; }, 1000);
+      setTimeout(() => { try { doc.body.innerHTML = ''; } catch(_) {} }, 1000);
     }
   </script>
 
+  <!-- toast host -->
   <div class="toast" aria-live="polite"></div>
+
+  <!-- hidden iframe is created on demand by getPrintFrame() -->
 </body>
 </html>
