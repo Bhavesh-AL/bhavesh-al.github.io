@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.hitachi.axiswebview",
       "sha256_cert_fingerprints": [
-        "FF:45:C9:B1:3E:A9:DD:DB:36:52:3D:86:CA:07:32:98:82:32:E1:43:F0:98:BA:50:35:C4:FD:FC:9E:CB:CE:E3"
+        "FF:45:C9:B1:3E:A9:DD:DB:36:52:3D:86:CA:07:32:98:82:32:E1:43:F0:98:BA:50:35:C4:FD:FC:9E:CB:CE:E3",
+        "0C:5A:5A:54:A9:BC:5D:99:54:F7:E8:B9:A7:E4:12:C7:4C:F6:B1:EE:F7:30:A9:D6:C6:ED:1B:20:3D:9B:9A:D7"
       ]
     }
   }
