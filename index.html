@@ -3,93 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axis-Hitachi | Debug Portal</title>
+    <title>Axis-Hitachi | VKYC System Check</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        #debug-console::-webkit-scrollbar { width: 4px; }
+        #debug-console::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+    </style>
 </head>
-<body class="bg-gray-100 p-4">
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
-        <h1 class="text-xl font-bold text-red-700 mb-4 border-b pb-2">VKYC System Check</h1>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <div class="max-w-md w-full glass-panel rounded-3xl shadow-2xl border border-white p-8">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-[#971237]">VKYC Check</h1>
+                <p class="text-xs text-gray-500 font-medium">Axis-Hitachi Digital Banking</p>
+            </div>
+            <div class="w-10 h-10 bg-[#971237] rounded-full flex items-center justify-center text-white font-bold italic shadow-lg">A</div>
+        </div>
         
-        <div id="status-list" class="space-y-3">
-            <div id="check-camera" class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                <span>Camera</span>
-                <span class="status-icon"><i class="fas fa-circle-notch fa-spin text-gray-300"></i></span>
+        <div id="status-list" class="space-y-4">
+            <div id="check-camera" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i class="fas fa-camera"></i></div>
+                    <span class="font-semibold text-gray-700">Camera</span>
+                </div>
+                <span class="status-icon"><i class="fas fa-minus text-gray-200"></i></span>
             </div>
-            <div id="check-mic" class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                <span>Microphone</span>
-                <span class="status-icon"><i class="fas fa-circle-notch fa-spin text-gray-300"></i></span>
+
+            <div id="check-mic" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i class="fas fa-microphone"></i></div>
+                    <span class="font-semibold text-gray-700">Microphone</span>
+                </div>
+                <span class="status-icon"><i class="fas fa-minus text-gray-200"></i></span>
             </div>
-            <div id="check-location" class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                <span>Location</span>
-                <span class="status-icon"><i class="fas fa-circle-notch fa-spin text-gray-300"></i></span>
+
+            <div id="check-location" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i class="fas fa-location-dot"></i></div>
+                    <span class="font-semibold text-gray-700">Location</span>
+                </div>
+                <span class="status-icon"><i class="fas fa-minus text-gray-200"></i></span>
             </div>
         </div>
 
-        <button onclick="runDiagnostic()" class="w-full mt-6 bg-red-700 text-white py-3 rounded-lg font-bold">
-            Run Diagnostic
-        </button>
+        <div class="mt-8 space-y-3">
+            <button onclick="runDiagnostic()" id="diag-btn" class="w-full bg-[#971237] hover:bg-[#7a0e2c] text-white py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95">
+                Run System Diagnostic
+            </button>
+            
+            <button id="proceed-btn" disabled class="w-full bg-green-600 text-white py-4 rounded-2xl font-bold opacity-30 cursor-not-allowed transition-all">
+                Proceed to Video Call
+            </button>
+        </div>
 
         <div class="mt-8">
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Debug Console</h3>
-            <div id="debug-console" class="bg-black text-green-400 text-[10px] font-mono p-3 rounded-lg h-40 overflow-y-auto">
-                > System initialized. Waiting for diagnostic...
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live Debug Logs</h3>
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            </div>
+            <div id="debug-console" class="bg-gray-900 text-green-400 text-[10px] font-mono p-4 rounded-xl h-44 overflow-y-auto shadow-inner border border-gray-800">
+                > Initializing secure kernel...<br>
+                > Ready for hardware check.
             </div>
         </div>
     </div>
 
     <script>
+        let results = { camera: false, mic: false, location: false };
+
         const log = (msg, isError = false) => {
             const consoleEl = document.getElementById('debug-console');
             const time = new Date().toLocaleTimeString().split(' ')[0];
-            consoleEl.innerHTML += `<div class="${isError ? 'text-red-400' : ''}">[${time}] ${msg}</div>`;
+            const color = isError ? 'text-red-400' : 'text-green-400';
+            consoleEl.innerHTML += `<div class="mb-1 ${color}"><span class="text-gray-600">[${time}]</span> ${msg}</div>`;
             consoleEl.scrollTop = consoleEl.scrollHeight;
         };
 
         const updateUI = (id, success) => {
-            const el = document.getElementById(id).querySelector('.status-icon');
-            el.innerHTML = success 
-                ? '<i class="fas fa-check-circle text-green-500"></i>' 
-                : '<i class="fas fa-times-circle text-red-500"></i>';
+            const row = document.getElementById(id);
+            const icon = row.querySelector('.status-icon');
+            if (success) {
+                row.classList.add('border-green-100', 'bg-green-50/30');
+                icon.innerHTML = '<i class="fas fa-check-circle text-green-500 text-lg"></i>';
+            } else {
+                row.classList.add('border-red-100', 'bg-red-50/30');
+                icon.innerHTML = '<i class="fas fa-times-circle text-red-500 text-lg"></i>';
+            }
+            checkFinalStatus();
+        };
+
+        const checkFinalStatus = () => {
+            if (results.camera && results.mic && results.location) {
+                const btn = document.getElementById('proceed-btn');
+                btn.disabled = false;
+                btn.classList.remove('opacity-30', 'cursor-not-allowed');
+                btn.classList.add('shadow-xl', 'hover:bg-green-700');
+                log("SYSTEM READY: All hardware requirements met.");
+            }
         };
 
         async function runDiagnostic() {
-            log("Starting Diagnostic...");
+            log("--- Starting Full Diagnostic ---");
+            document.getElementById('diag-btn').innerText = "Re-scanning...";
 
-            // 1. Check Camera
+            // 1. Camera
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 stream.getTracks().forEach(t => t.stop());
-                log("Camera: SUCCESS");
+                log("Camera: OK");
+                results.camera = true;
                 updateUI('check-camera', true);
             } catch (e) {
-                log(`Camera ERROR: ${e.name} - ${e.message}`, true);
+                log(`Camera Error: ${e.name}`, true);
+                results.camera = false;
                 updateUI('check-camera', false);
             }
 
-            // 2. Check Mic
+            // 2. Microphone
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(t => t.stop());
-                log("Microphone: SUCCESS");
+                log("Microphone: OK");
+                results.mic = true;
                 updateUI('check-mic', true);
             } catch (e) {
-                log(`Mic ERROR: ${e.name} - ${e.message}`, true);
+                log(`Mic Error: ${e.name}`, true);
+                results.mic = false;
                 updateUI('check-mic', false);
             }
 
-            // 3. Check Location
-            log("Requesting Geolocation...");
+            // 3. Location with Fallback
+            log("Requesting Location...");
+            
+            const locOptions = {
+                enableHighAccuracy: true, // First try GPS
+                timeout: 6000,
+                maximumAge: 0
+            };
+
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    log(`Location: SUCCESS (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})`);
+                    log(`Location: OK (Precise)`);
+                    results.location = true;
                     updateUI('check-location', true);
                 },
                 (err) => {
-                    log(`Location ERROR: Code ${err.code} - ${err.message}`, true);
-                    updateUI('check-location', false);
+                    log(`GPS failed (Code ${err.code}). Attempting Network fallback...`, true);
+                    
+                    // FALLBACK: Use low accuracy (Wi-Fi/Cell Towers)
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            log(`Location: OK (Network)`);
+                            results.location = true;
+                            updateUI('check-location', true);
+                        },
+                        (err2) => {
+                            log(`Location Error: ${err2.message}`, true);
+                            log("HINT: Ensure Chrome has Location permission in Android Settings.", true);
+                            results.location = false;
+                            updateUI('check-location', false);
+                        },
+                        { enableHighAccuracy: false, timeout: 10000 }
+                    );
                 },
-                { timeout: 5000 }
+                locOptions
             );
         }
     </script>
