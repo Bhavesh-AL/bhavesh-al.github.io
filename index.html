@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
         }
 
         #debug-console::-webkit-scrollbar {
@@ -21,75 +21,70 @@
             background: #444;
             border-radius: 10px;
         }
+        
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
     </style>
 </head>
 
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 font-sans">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans">
 
     <div class="max-w-md w-full glass-panel rounded-3xl shadow-2xl border border-white p-8">
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-[#971237]">VKYC Check</h1>
-                <p class="text-xs text-gray-500 font-medium">Axis-Hitachi Digital Banking</p>
+                <p class="text-xs text-gray-500 font-medium tracking-wide">Axis-Hitachi Digital Banking</p>
             </div>
-            <div
-                class="w-10 h-10 bg-[#971237] rounded-full flex items-center justify-center text-white font-bold italic shadow-lg">
-                A</div>
+            <div class="w-10 h-10 bg-[#971237] rounded-full flex items-center justify-center text-white font-bold italic shadow-lg">A</div>
         </div>
 
         <div id="status-list" class="space-y-4">
-            <div id="check-camera"
-                class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
+            <div id="check-camera" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i
-                            class="fas fa-camera"></i></div>
-                    <span class="font-semibold text-gray-700">Camera</span>
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-camera"></i></div>
+                    <span class="font-semibold text-slate-700">Camera</span>
                 </div>
-                <span class="status-icon"><i class="fas fa-minus text-gray-200"></i></span>
+                <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
             </div>
 
-            <div id="check-mic"
-                class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
+            <div id="check-mic" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i
-                            class="fas fa-microphone"></i></div>
-                    <span class="font-semibold text-gray-700">Microphone</span>
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-microphone"></i></div>
+                    <span class="font-semibold text-slate-700">Microphone</span>
                 </div>
-                <span class="status-icon"><i class="fas fa-minus text-gray-200"></i></span>
+                <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
             </div>
 
-            <div id="check-location"
-                class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
+            <div id="check-location" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i
-                            class="fas fa-location-dot"></i></div>
-                    <span class="font-semibold text-gray-700">Location</span>
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-location-dot"></i></div>
+                    <span class="font-semibold text-slate-700">Location</span>
                 </div>
-                <span class="status-icon"><i class="fas fa-minus text-gray-200"></i></span>
+                <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
             </div>
         </div>
 
         <div class="mt-8 space-y-3">
-            <button onclick="runDiagnostic()" id="diag-btn"
-                class="w-full bg-[#971237] hover:bg-[#7a0e2c] text-white py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95">
+            <button onclick="runDiagnostic()" id="diag-btn" class="w-full bg-[#971237] hover:bg-[#7a0e2c] text-white py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95">
                 Run System Diagnostic
             </button>
 
-            <button id="proceed-btn" disabled
-                class="w-full bg-green-600 text-white py-4 rounded-2xl font-bold opacity-30 cursor-not-allowed transition-all">
+            <button id="proceed-btn" disabled class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold opacity-30 cursor-not-allowed transition-all">
                 Proceed to Video Call
             </button>
         </div>
 
         <div class="mt-8">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live Debug Logs</h3>
-                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <div class="flex justify-between items-center mb-2 px-1">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Debug Logs</h3>
+                <span id="pulse-dot" class="w-2 h-2 rounded-full bg-slate-300"></span>
             </div>
-            <div id="debug-console"
-                class="bg-gray-900 text-green-400 text-[10px] font-mono p-4 rounded-xl h-44 overflow-y-auto shadow-inner border border-gray-800">
+            <div id="debug-console" class="bg-slate-900 text-emerald-400 text-[10px] font-mono p-4 rounded-xl h-44 overflow-y-auto shadow-inner border border-slate-800">
                 > Initializing secure kernel...<br>
-                > Ready for hardware check.
+                > Ready for hardware verification.
             </div>
         </div>
     </div>
@@ -100,20 +95,24 @@
         const log = (msg, isError = false) => {
             const consoleEl = document.getElementById('debug-console');
             const time = new Date().toLocaleTimeString().split(' ')[0];
-            const color = isError ? 'text-red-400' : 'text-green-400';
-            consoleEl.innerHTML += `<div class="mb-1 ${color}"><span class="text-gray-600">[${time}]</span> ${msg}</div>`;
+            const color = isError ? 'text-rose-400' : 'text-emerald-400';
+            consoleEl.innerHTML += `<div class="mb-1 ${color}"><span class="text-slate-600">[${time}]</span> ${msg}</div>`;
             consoleEl.scrollTop = consoleEl.scrollHeight;
         };
 
         const updateUI = (id, success) => {
             const row = document.getElementById(id);
             const icon = row.querySelector('.status-icon');
+            
+            // Reset styles
+            row.classList.remove('border-emerald-100', 'bg-emerald-50/50', 'border-rose-100', 'bg-rose-50/50');
+            
             if (success) {
-                row.classList.add('border-green-100', 'bg-green-50/30');
-                icon.innerHTML = '<i class="fas fa-check-circle text-green-500 text-lg"></i>';
+                row.classList.add('border-emerald-100', 'bg-emerald-50/50');
+                icon.innerHTML = '<i class="fas fa-check-circle text-emerald-500 text-lg"></i>';
             } else {
-                row.classList.add('border-red-100', 'bg-red-50/30');
-                icon.innerHTML = '<i class="fas fa-times-circle text-red-500 text-lg"></i>';
+                row.classList.add('border-rose-100', 'bg-rose-50/50');
+                icon.innerHTML = '<i class="fas fa-times-circle text-rose-500 text-lg"></i>';
             }
             checkFinalStatus();
         };
@@ -123,8 +122,9 @@
                 const btn = document.getElementById('proceed-btn');
                 btn.disabled = false;
                 btn.classList.remove('opacity-30', 'cursor-not-allowed');
-                btn.classList.add('shadow-xl', 'hover:bg-green-700');
-                log("SYSTEM READY: All hardware requirements met.");
+                btn.classList.add('shadow-xl', 'hover:bg-emerald-700', 'bg-emerald-600');
+                document.getElementById('pulse-dot').classList.add('bg-emerald-500', 'animate-pulse-soft');
+                log("VERIFICATION COMPLETE: System is compliant.");
             }
         };
 
@@ -132,7 +132,7 @@
             log("--- Starting Full Diagnostic ---");
             document.getElementById('diag-btn').innerText = "Re-scanning...";
 
-            // 1. Camera
+            // 1. Camera Verification
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 stream.getTracks().forEach(t => t.stop());
@@ -145,7 +145,7 @@
                 updateUI('check-camera', false);
             }
 
-            // 2. Microphone
+            // 2. Microphone Verification
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(t => t.stop());
@@ -158,40 +158,40 @@
                 updateUI('check-mic', false);
             }
 
-            // 3. Location with Fallback
+            // 3. Robust Geolocation Logic (Handling Timeout & Code 2)
             log("Requesting Location...");
-
-            const locOptions = {
-                enableHighAccuracy: false, // First try GPS
-                timeout: 8000,             // Give it 8 seconds
-                maximumAge: 60000
-            };
-
+            
+            // Try 1: Fast Cached Check
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    log(`Location: OK (Precise)`);
+                    log("Location: OK (Cached Fix)");
                     results.location = true;
                     updateUI('check-location', true);
                 },
                 (err) => {
-                    log(`GPS failed (Code ${err.code}). Attempting Network fallback...`, true);
-
-                    // FALLBACK: Use low accuracy (Wi-Fi/Cell Towers)
+                    log(`Cache missed. Attempting Live Network Fix (15s)...`, false);
+                    
+                    // Try 2: Live Network-Based (Low Power, High Timeout)
                     navigator.geolocation.getCurrentPosition(
                         (pos) => {
-                            log(`Location: OK (Network)`);
+                            log("Location: OK (Network Fix)");
                             results.location = true;
                             updateUI('check-location', true);
                         },
                         (err2) => {
                             log(`Location Error: ${err2.message}`, true);
-                            log("HINT: Ensure Chrome has Location permission in Android Settings.", true);
+                            log("HINT: Enable 'Google Location Accuracy' in Settings.", true);
                             results.location = false;
                             updateUI('check-location', false);
                         },
-                        { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity });
+                        { 
+                            enableHighAccuracy: false, // Prevents Code 2/GPS hang
+                            timeout: 15000,            // Long wait for hardware warm-up
+                            maximumAge: 0 
+                        }
+                    );
                 },
-                locOptions
+                { enableHighAccuracy: false, timeout: 2000, maximumAge: 3600000 }
             );
         }
     </script>
