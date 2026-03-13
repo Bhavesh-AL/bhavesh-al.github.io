@@ -3,202 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axis-Hitachi | VKYC Verification</title>
+    <title>Axis-Hitachi | Debug Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .step-inactive { opacity: 0.5; filter: grayscale(1); }
-        .pulse-animation { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-    </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
-
-    <nav class="bg-white shadow-sm border-b border-gray-200 py-4 px-6 flex justify-between items-center">
-        <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 bg-red-700 rounded-full flex items-center justify-center text-white font-bold italic">A</div>
-            <span class="text-xl font-bold tracking-tight text-red-700">AXIS-HITACHI <span class="text-gray-400 font-light">| DBU</span></span>
-        </div>
-        <div class="text-xs text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full">Secure VKYC Portal</div>
-    </nav>
-
-    <main class="max-w-2xl mx-auto mt-12 px-6">
+<body class="bg-gray-100 p-4">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
+        <h1 class="text-xl font-bold text-red-700 mb-4 border-b pb-2">VKYC System Check</h1>
         
-        <div id="welcome-screen" class="bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100">
-            <div class="mb-6">
-                <i class="fas fa-user-shield text-5xl text-red-600"></i>
+        <div id="status-list" class="space-y-3">
+            <div id="check-camera" class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <span>Camera</span>
+                <span class="status-icon"><i class="fas fa-circle-notch fa-spin text-gray-300"></i></span>
             </div>
-            <h1 class="text-2xl font-bold mb-4">Start Your Video KYC</h1>
-            <p class="text-gray-600 mb-8 leading-relaxed">
-                To ensure a seamless verification experience, we need to check your device compatibility and permissions for camera, microphone, and location.
-            </p>
-            <button id="start-btn" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg">
-                Proceed to Verification
-            </button>
-        </div>
-
-        <div id="checker-screen" class="hidden bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-            <h2 class="text-xl font-bold mb-6 flex items-center">
-                <span class="bg-red-100 text-red-700 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">2</span>
-                System Readiness Check
-            </h2>
-
-            <div class="space-y-4">
-                <div id="step-camera" class="flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50 transition-colors">
-                    <div class="flex items-center space-x-4">
-                        <i class="fas fa-camera text-gray-400 text-xl w-8 text-center"></i>
-                        <div>
-                            <p class="font-semibold">Camera Access</p>
-                            <p class="text-xs text-gray-500">Required for face verification</p>
-                        </div>
-                    </div>
-                    <div class="status-icon"><i class="fas fa-circle-notch fa-spin text-gray-300 hidden"></i></div>
-                </div>
-
-                <div id="step-microphone" class="step-inactive flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50">
-                    <div class="flex items-center space-x-4">
-                        <i class="fas fa-microphone text-gray-400 text-xl w-8 text-center"></i>
-                        <div>
-                            <p class="font-semibold">Microphone Access</p>
-                            <p class="text-xs text-gray-500">Required for interaction with officer</p>
-                        </div>
-                    </div>
-                    <div class="status-icon"></div>
-                </div>
-
-                <div id="step-location" class="step-inactive flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50">
-                    <div class="flex items-center space-x-4">
-                        <i class="fas fa-location-dot text-gray-400 text-xl w-8 text-center"></i>
-                        <div>
-                            <p class="font-semibold">Location Access</p>
-                            <p class="text-xs text-gray-500">Required to confirm you are in India</p>
-                        </div>
-                    </div>
-                    <div class="status-icon"></div>
-                </div>
-
-                <div id="step-speaker" class="step-inactive flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50">
-                    <div class="flex items-center space-x-4">
-                        <i class="fas fa-volume-up text-gray-400 text-xl w-8 text-center"></i>
-                        <div>
-                            <p class="font-semibold">Speaker Output</p>
-                            <p class="text-xs text-gray-500">Ensure you can hear the agent</p>
-                        </div>
-                    </div>
-                    <div class="status-icon"></div>
-                </div>
+            <div id="check-mic" class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <span>Microphone</span>
+                <span class="status-icon"><i class="fas fa-circle-notch fa-spin text-gray-300"></i></span>
             </div>
-
-            <div id="final-action" class="mt-8 hidden">
-                <div id="success-msg" class="text-center p-4 bg-green-50 text-green-700 rounded-lg mb-4 hidden">
-                    All systems ready! Redirecting to secure session...
-                </div>
-                <button id="retry-btn" class="w-full border-2 border-red-700 text-red-700 font-bold py-3 rounded-xl hover:bg-red-50 hidden">
-                    Retry Failed Permissions
-                </button>
+            <div id="check-location" class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <span>Location</span>
+                <span class="status-icon"><i class="fas fa-circle-notch fa-spin text-gray-300"></i></span>
             </div>
         </div>
-    </main>
+
+        <button onclick="runDiagnostic()" class="w-full mt-6 bg-red-700 text-white py-3 rounded-lg font-bold">
+            Run Diagnostic
+        </button>
+
+        <div class="mt-8">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Debug Console</h3>
+            <div id="debug-console" class="bg-black text-green-400 text-[10px] font-mono p-3 rounded-lg h-40 overflow-y-auto">
+                > System initialized. Waiting for diagnostic...
+            </div>
+        </div>
+    </div>
 
     <script>
-        const startBtn = document.getElementById('start-btn');
-        const welcomeScreen = document.getElementById('welcome-screen');
-        const checkerScreen = document.getElementById('checker-screen');
-        const retryBtn = document.getElementById('retry-btn');
-
-        const steps = {
-            camera: { el: document.getElementById('step-camera'), icon: 'fa-camera' },
-            microphone: { el: document.getElementById('step-microphone'), icon: 'fa-microphone' },
-            location: { el: document.getElementById('step-location'), icon: 'fa-location-dot' },
-            speaker: { el: document.getElementById('step-speaker'), icon: 'fa-volume-up' }
+        const log = (msg, isError = false) => {
+            const consoleEl = document.getElementById('debug-console');
+            const time = new Date().toLocaleTimeString().split(' ')[0];
+            consoleEl.innerHTML += `<div class="${isError ? 'text-red-400' : ''}">[${time}] ${msg}</div>`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
         };
 
-        const icons = {
-            loading: '<i class="fas fa-circle-notch fa-spin text-blue-500"></i>',
-            success: '<i class="fas fa-check-circle text-green-500 text-xl"></i>',
-            error: '<i class="fas fa-times-circle text-red-500 text-xl"></i>'
+        const updateUI = (id, success) => {
+            const el = document.getElementById(id).querySelector('.status-icon');
+            el.innerHTML = success 
+                ? '<i class="fas fa-check-circle text-green-500"></i>' 
+                : '<i class="fas fa-times-circle text-red-500"></i>';
         };
 
-        startBtn.addEventListener('click', startVerification);
-        retryBtn.addEventListener('click', () => location.reload());
+        async function runDiagnostic() {
+            log("Starting Diagnostic...");
 
-        async function startVerification() {
-            welcomeScreen.classList.add('hidden');
-            checkerScreen.classList.remove('hidden');
-            
-            await checkCamera();
-            await checkMicrophone();
-            await checkLocation();
-            await checkSpeaker();
-
-            document.getElementById('final-action').classList.remove('hidden');
-        }
-
-        function setStatus(stepKey, status) {
-            const step = steps[stepKey];
-            const statusContainer = step.el.querySelector('.status-icon');
-            step.el.classList.remove('step-inactive', 'bg-gray-50', 'bg-red-50', 'bg-green-50');
-            
-            if (status === 'loading') {
-                statusContainer.innerHTML = icons.loading;
-                step.el.classList.add('pulse-animation');
-            } else if (status === 'success') {
-                statusContainer.innerHTML = icons.success;
-                step.el.classList.remove('pulse-animation');
-                step.el.classList.add('bg-green-50', 'border-green-200');
-            } else {
-                statusContainer.innerHTML = icons.error;
-                step.el.classList.remove('pulse-animation');
-                step.el.classList.add('bg-red-50', 'border-red-200');
-                retryBtn.classList.remove('hidden');
-            }
-        }
-
-        async function checkCamera() {
-            setStatus('camera', 'loading');
+            // 1. Check Camera
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                stream.getTracks().forEach(track => track.stop());
-                setStatus('camera', 'success');
-            } catch (err) {
-                setStatus('camera', 'error');
+                stream.getTracks().forEach(t => t.stop());
+                log("Camera: SUCCESS");
+                updateUI('check-camera', true);
+            } catch (e) {
+                log(`Camera ERROR: ${e.name} - ${e.message}`, true);
+                updateUI('check-camera', false);
             }
-        }
 
-        async function checkMicrophone() {
-            setStatus('microphone', 'loading');
+            // 2. Check Mic
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(track => track.stop());
-                setStatus('microphone', 'success');
-            } catch (err) {
-                setStatus('microphone', 'error');
+                stream.getTracks().forEach(t => t.stop());
+                log("Microphone: SUCCESS");
+                updateUI('check-mic', true);
+            } catch (e) {
+                log(`Mic ERROR: ${e.name} - ${e.message}`, true);
+                updateUI('check-mic', false);
             }
-        }
 
-        async function checkLocation() {
-            setStatus('location', 'loading');
-            return new Promise((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                    () => { setStatus('location', 'success'); resolve(); },
-                    () => { setStatus('location', 'error'); resolve(); },
-                    { timeout: 10000 }
-                );
-            });
-        }
-
-        async function checkSpeaker() {
-            setStatus('speaker', 'loading');
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') {
-                    await audioCtx.resume();
-                }
-                setStatus('speaker', 'success');
-                document.getElementById('success-msg').classList.remove('hidden');
-            } catch (err) {
-                setStatus('speaker', 'error');
-            }
+            // 3. Check Location
+            log("Requesting Geolocation...");
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    log(`Location: SUCCESS (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})`);
+                    updateUI('check-location', true);
+                },
+                (err) => {
+                    log(`Location ERROR: Code ${err.code} - ${err.message}`, true);
+                    updateUI('check-location', false);
+                },
+                { timeout: 5000 }
+            );
         }
     </script>
 </body>
