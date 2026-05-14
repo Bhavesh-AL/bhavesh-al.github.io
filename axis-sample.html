@@ -8,6 +8,7 @@
   <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
+    /* CSS REMAINS IDENTICAL */
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
@@ -160,7 +161,6 @@
             <button class="btn outline" onclick="triggerDirectScan()" style="display: flex; align-items: center; gap: 8px;">
                 <span aria-hidden="true">📸</span> Direct Scan
             </button>
-            <input id="directScanInput" type="file" accept="application/vnd.hitachi.scan, image/jpeg" style="display: none;" />
 
             <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
             <span id="fileName" class="file-name muted"></span>
@@ -198,63 +198,70 @@
     function printPage(){ toaster('Opening print dialog...'); window.print(); }
     document.getElementById('year').textContent=new Date().getFullYear();
 
-    const fileInput = document.getElementById('fileInput');
-    const directScanInput = document.getElementById('directScanInput');
-    const fileNameEl = document.getElementById('fileName');
-    const printArea = document.getElementById('printArea');
-
-    // --- IMPROVED ERROR HANDLING ---
-    let directScanClicked = false;
+    // --- DIRECT SCAN LOGIC (DEEP LINK) ---
     function triggerDirectScan() {
-        directScanClicked = true;
-        // Clear the previous file so a fresh cancellation is properly detected
-        document.getElementById('directScanInput').value = ''; 
-        document.getElementById('directScanInput').click();
+        const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
+        // This instantly opens your Android app
+        window.location.href = `hpy-scan://start?returnUrl=${currentUrl}`;
     }
 
-    // Detect when user returns from the app without selecting a file
-    window.addEventListener('focus', () => {
-        if (directScanClicked) {
-            // Increased to 2500ms to allow heavy high-res Android intents to resolve before assuming failure
-            setTimeout(() => {
-                if (directScanClicked && document.getElementById('directScanInput').files.length === 0) {
-                    toaster("Scan was cancelled or no image received.");
-                }
-                directScanClicked = false;
-            }, 2500); 
+    // Intercept Returning Data from Android App
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const scanData = urlParams.get('scanData');
+        
+        if (scanData) {
+            // Clean up the URL bar immediately
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            const printArea = document.getElementById('printArea');
+            const fileNameEl = document.getElementById('fileName');
+            
+            printArea.innerHTML = '';
+            fileNameEl.textContent = 'direct_scan.jpg';
+            
+            const img = document.createElement('img');
+            
+            img.onerror = () => {
+                printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">Failed to render image. URL may have been truncated.</div>';
+                toaster('Failed to render image');
+            };
+            
+            img.onload = () => { toaster('Scan successful! Ready to print.'); };
+            img.src = "data:image/jpeg;base64," + scanData;
+            img.alt = "Scanned Document";
+            printArea.appendChild(img);
+            
+            scrollToId('uploadSection');
         }
     });
 
-    // --- REWRITTEN PREVIEW LOGIC WITH ERROR HANDLING ---
-    async function handleFileSelection(file, isDirectScan) {
+    // --- STANDARD FILE INPUT LOGIC ---
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    const printArea = document.getElementById('printArea');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
       printArea.innerHTML = '';
       fileNameEl.textContent = '';
       
       if (!file) {
-        printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">No file received.</div>';
+        printArea.innerHTML = '<div class="placeholder">No file selected yet.</div>';
         return;
       }
       
-      // The browser might strip the name from custom intents. Fallback provided.
-      const name = file.name || (isDirectScan ? 'scanned_document.jpg' : 'unknown_file');
+      const name = file.name;
       fileNameEl.textContent = name;
       const type = file.type || '';
       const url = URL.createObjectURL(file);
 
-      // Force image rendering if it came from the Direct Scan input, bypassing strict MIME checks
-      if (isDirectScan || type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
+      if (type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
         const img = document.createElement('img');
-        
-        // Error handling if the image stream is corrupted
-        img.onerror = () => {
-            printArea.innerHTML = '<div class="placeholder" style="color:#E60012; font-weight:bold;">Error: The scanned image could not be loaded. The data may be corrupted.</div>';
-            toaster('Failed to render image');
-        };
-        img.onload = () => { toaster('Scan successful! Ready to print.'); };
-        
         img.src = url; 
         img.alt = name;
         printArea.appendChild(img);
+        toaster('Image ready for print');
         return;
       }
       
@@ -278,27 +285,9 @@
       info.className = 'placeholder';
       info.textContent = 'Unsupported file type. Try image, PDF, or text.';
       printArea.appendChild(info);
-    }
-
-    // Direct Scan Listener
-    directScanInput.addEventListener('change', (e) => {
-        directScanClicked = false; // Reset trigger so the cancellation error doesn't fire
-        if (e.target.files.length > 0) {
-            // Sync it to the main file input for the print functionality
-            const dt = new DataTransfer();
-            dt.items.add(e.target.files[0]);
-            fileInput.files = dt.files;
-            
-            handleFileSelection(e.target.files[0], true);
-        }
     });
 
-    // Standard File Input Listener
-    fileInput.addEventListener('change', (e) => {
-        handleFileSelection(e.target.files?.[0], false);
-    });
-
-    // --- EXISTING PRINT LOGIC ---
+    // --- EXISTING PRINT LOGIC (No Changes) ---
     function ensureOnlyImagePrintCSS() {
       if (document.getElementById('onlyImagePrintCSS')) return;
       const style = document.createElement('style');
