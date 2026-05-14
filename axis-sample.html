@@ -8,7 +8,6 @@
   <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
-    /* CSS REMAINS IDENTICAL */
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
@@ -149,7 +148,6 @@
       </div>
     </section>
 
-    <!-- ✅ UPLOAD & PRINT -->
     <section id="uploadSection" class="safe">
       <div class="container">
         <div class="card">
@@ -157,16 +155,13 @@
           <p class="muted" style="margin:0 0 12px">Choose a file, or open the scanner directly.</p>
 
           <div class="file-row">
-            <!-- 1. Existing Standard Upload Input -->
             <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 250px;" />
             
-            <!-- 2. Direct Scan Button & Hidden Input -->
             <button class="btn outline" onclick="triggerDirectScan()" style="display: flex; align-items: center; gap: 8px;">
                 <span aria-hidden="true">📸</span> Direct Scan
             </button>
-            <input id="directScanInput" type="file" accept="application/vnd.hitachi.scan" style="display: none;" />
+            <input id="directScanInput" type="file" accept="application/vnd.hitachi.scan, image/jpeg" style="display: none;" />
 
-            <!-- 3. Existing Print Button -->
             <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
             <span id="fileName" class="file-name muted"></span>
           </div>
@@ -208,22 +203,25 @@
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
 
-    // --- ERROR HANDLING FOR CANCELLATION ---
+    // --- IMPROVED ERROR HANDLING ---
     let directScanClicked = false;
     function triggerDirectScan() {
         directScanClicked = true;
+        // Clear the previous file so a fresh cancellation is properly detected
+        document.getElementById('directScanInput').value = ''; 
         document.getElementById('directScanInput').click();
     }
 
     // Detect when user returns from the app without selecting a file
     window.addEventListener('focus', () => {
         if (directScanClicked) {
+            // Increased to 2500ms to allow heavy high-res Android intents to resolve before assuming failure
             setTimeout(() => {
-                if (directScanInput.files.length === 0) {
-                    toaster("Scan was cancelled or failed to process.");
+                if (directScanClicked && document.getElementById('directScanInput').files.length === 0) {
+                    toaster("Scan was cancelled or no image received.");
                 }
                 directScanClicked = false;
-            }, 800); // Give the browser time to populate the file array
+            }, 2500); 
         }
     });
 
@@ -243,7 +241,7 @@
       const type = file.type || '';
       const url = URL.createObjectURL(file);
 
-      // Force image rendering if it came from the Direct Scan input, bypassing MIME checks
+      // Force image rendering if it came from the Direct Scan input, bypassing strict MIME checks
       if (isDirectScan || type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
         const img = document.createElement('img');
         
@@ -284,7 +282,7 @@
 
     // Direct Scan Listener
     directScanInput.addEventListener('change', (e) => {
-        directScanClicked = false; // Reset trigger
+        directScanClicked = false; // Reset trigger so the cancellation error doesn't fire
         if (e.target.files.length > 0) {
             // Sync it to the main file input for the print functionality
             const dt = new DataTransfer();
@@ -352,7 +350,6 @@
     }
   </script>
 
-  <!-- 🔧 PATCH: print fix shim (v1.0.3) -->
   <script>
     (function(){
       const VERSION = '1.0.3';
