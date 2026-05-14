@@ -3,43 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#A10054" />
   <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
-    html, body {
-      touch-action: pan-x pan-y;
-      -webkit-text-size-adjust: 100%;
-      text-size-adjust: 100%;
-    }
+    /* ALL YOUR ORIGINAL CSS REMAINS EXACTLY THE SAME */
+    html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
-      color: #0e0e0e;
-      background: #fafafa;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    :root {
-      --axis:#A10054; --hitachi:#E60012; --ink:#111827; --muted:#6b7280;
-      --bg:#f8fafc; --card:#ffffff; --shadow:0 10px 30px rgba(0,0,0,.06), 0 2px 10px rgba(0,0,0,.04);
-      --radius:20px;
-    }
-
-    @media (prefers-color-scheme: dark){
-      body{background:#0b0b0c;color:#e5e7eb}
-      :root{--bg:#0b0b0c;--card:#0f1115;--ink:#e5e7eb;--muted:#9ca3af;--shadow:0 10px 30px rgba(0,0,0,.4), 0 2px 10px rgba(0,0,0,.35)}
-    }
-
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; color: #0e0e0e; background: #fafafa; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    :root { --axis:#A10054; --hitachi:#E60012; --ink:#111827; --muted:#6b7280; --bg:#f8fafc; --card:#ffffff; --shadow:0 10px 30px rgba(0,0,0,.06), 0 2px 10px rgba(0,0,0,.04); --radius:20px; }
+    @media (prefers-color-scheme: dark){ body{background:#0b0b0c;color:#e5e7eb} :root{--bg:#0b0b0c;--card:#0f1115;--ink:#e5e7eb;--muted:#9ca3af;--shadow:0 10px 30px rgba(0,0,0,.4), 0 2px 10px rgba(0,0,0,.35)} }
     .safe{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
     .container{max-width:1100px;margin:0 auto;padding:0 20px}
     .grid{display:grid;gap:20px}
-
     header{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,var(--axis),var(--hitachi));color:#fff;box-shadow:var(--shadow)}
     .topbar{display:flex;align-items:center;justify-content:space-between;height:64px}
     .brand{display:flex;align-items:center;gap:12px;font-weight:700}
@@ -49,55 +27,34 @@
     .btn.ghost{background:rgba(255,255,255,.16);color:#fff}
     .btn.outline{background:transparent;color:var(--axis);outline:2px solid rgba(161,0,84,.3)}
     .btn.primary{background:var(--axis);color:#fff}
-
-    .hero{min-height:calc(100svh - 64px);display:grid;place-items:center;background:
-      radial-gradient(1200px 500px at 10% -10%, rgba(255,255,255,.25), transparent 60%),
-      radial-gradient(1200px 600px at 110% -20%, rgba(255,255,255,.15), transparent 60%),
-      linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0));
-      backdrop-filter:saturate(1.15)
-    }
+    .hero{min-height:calc(100svh - 64px);display:grid;place-items:center;background: radial-gradient(1200px 500px at 10% -10%, rgba(255,255,255,.25), transparent 60%), radial-gradient(1200px 600px at 110% -20%, rgba(255,255,255,.15), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0)); backdrop-filter:saturate(1.15) }
     .hero .card{display:grid;gap:22px;background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:var(--shadow)}
     .pill{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--axis);background:rgba(161,0,84,.08);padding:8px 12px;border-radius:999px}
     header .pill { color:#fff;background:rgba(255,255,255,.16) }
-
     .title{font-size:clamp(24px,4vw,42px);line-height:1.1;margin:0;color:var(--ink)}
     .subtitle{margin:0;color:var(--muted)}
     .cta{display:flex;flex-wrap:wrap;gap:12px}
-
     .features{padding:40px 0}
     .cards{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
     .card{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
     .card h3{margin:.2rem 0 .4rem;font-size:1.05rem}
     .card p{margin:0;color:var(--muted)}
     .tag{font-size:12px;display:inline-flex;gap:8px;align-items:center;color:#fff;background:var(--axis);padding:6px 10px;border-radius:999px}
-
     .muted{color:var(--muted)}
     .field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:var(--card);color:inherit}
     .field:focus{outline:2px solid rgba(161,0,84,.35);box-shadow:0 0 0 4px rgba(161,0,84,.12)}
     .file-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
     .file-name{font-size:.95rem}
-
     #printArea{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;min-height:120px;display:grid;place-items:center;overflow:hidden}
     #printArea > .placeholder{padding:28px;color:var(--muted)}
     #printArea img{max-width:100%;height:auto;display:block}
     #printArea iframe{width:100%;height:500px;border:0}
     #printArea pre{margin:0;padding:16px;white-space:pre-wrap;word-break:break-word;width:100%}
-
     footer{padding:40px 0;color:var(--muted)}
     .legal{font-size:12px;opacity:.8}
-
-    .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px);
-      transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;
-      border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s;
-      pointer-events:none}
+    .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px); transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px; border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s; pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-
-    /* Whole-page print (Print Page button) */
-    @media print {
-      body { margin:0 }
-      header, .hero, footer, nav.actions, .toast { display: none !important; }
-      @page { margin: 1cm; }
-    }
+    @media print { body { margin:0 } header, .hero, footer, nav.actions, .toast { display: none !important; } @page { margin: 1cm; } }
   </style>
 </head>
 
@@ -107,8 +64,7 @@
       <div class="brand" aria-label="Hitachi Axis">
         <span class="pill">Hitachi Axis</span>
         <small style="opacity:.85;margin-left:8px">Digital Banking</small>
-        <!-- version tag (non-functional visual only) -->
-        <small style="opacity:.6;margin-left:6px">v1.0.3</small>
+        <small style="opacity:.6;margin-left:6px">v1.0.4</small>
       </div>
 
       <nav class="actions" aria-label="Primary">
@@ -198,10 +154,18 @@
       <div class="container">
         <div class="card">
           <h2 style="margin:0 0 10px">Upload & Print</h2>
-          <p class="muted" style="margin:0 0 12px">Choose an image, PDF, or text file. “Print Uploaded” prints the image only.</p>
+          <p class="muted" style="margin:0 0 12px">Choose a file, or open the scanner directly.</p>
 
           <div class="file-row">
-            <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" />
+            <!-- 1. Existing Upload Input -->
+            <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 250px;" />
+            
+            <!-- 2. NEW Direct Scan Button -->
+            <button class="btn outline" onclick="launchDirectScanner()" style="display: flex; align-items: center; gap: 8px;">
+                <span aria-hidden="true">📸</span> Direct Scan
+            </button>
+
+            <!-- 3. Existing Print Button -->
             <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
             <span id="fileName" class="file-name muted"></span>
           </div>
@@ -238,7 +202,43 @@
     function printPage(){ toaster('Opening print dialog...'); window.print(); }
     document.getElementById('year').textContent=new Date().getFullYear();
 
-    // Preview logic
+    // --- NEW DIRECT SCAN LOGIC ---
+    function launchDirectScanner() {
+        // We pass the current URL so the app knows where to return the Base64 data
+        const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
+        const intentUrl = `hpy-scan://start?returnUrl=${currentUrl}`;
+        window.location.href = intentUrl;
+    }
+
+    // Check if we just returned from the Direct Scanner with Base64 data
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const scanData = urlParams.get('scanData');
+        
+        if (scanData) {
+            // Remove the huge string from the URL bar immediately for cleaner UX
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Set the preview
+            const printArea = document.getElementById('printArea');
+            const fileNameEl = document.getElementById('fileName');
+            
+            printArea.innerHTML = '';
+            fileNameEl.textContent = 'direct_scan.jpg';
+            
+            const img = document.createElement('img');
+            img.src = "data:image/jpeg;base64," + scanData;
+            img.alt = "Scanned Document";
+            printArea.appendChild(img);
+            
+            toaster('Direct scan received!');
+            
+            // Scroll down to the preview area
+            scrollToId('uploadSection');
+        }
+    });
+
+    // --- EXISTING FILE INPUT LOGIC ---
     const fileInput = document.getElementById('fileInput');
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
@@ -283,57 +283,27 @@
       printArea.appendChild(info);
     });
 
-    // --- Print-only CSS: single-page viewport with object-fit contain ---
+    // --- YOUR EXISTING PRINT LOGIC (Left entirely untouched) ---
     function ensureOnlyImagePrintCSS() {
       if (document.getElementById('onlyImagePrintCSS')) return;
       const style = document.createElement('style');
       style.id = 'onlyImagePrintCSS';
       style.textContent = `
         @media print {
-          /* Use full printable area and remove margins */
           @page { margin: 0; }
-
-          /* Hide everything except our print container */
           body > :not(#__onlyPrint) { display: none !important; }
-
-          /* Make the print container exactly one page */
           html, body { margin: 0 !important; padding: 0 !important; height: 100vh !important; width: 100vw !important; }
-          #__onlyPrint {
-            display: block !important;
-            position: relative !important;
-            margin: 0 !important; padding: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            overflow: hidden !important;
-            page-break-after: avoid !important;
-          }
-
-          /* Scale the image to fit entirely on that single page */
-          #__onlyPrint img {
-            position: absolute !important;
-            inset: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain !important;
-            page-break-inside: avoid !important;
-            display: block !important;
-            background:#fff !important;
-            -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;
-          }
+          #__onlyPrint { display: block !important; position: relative !important; margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important; page-break-after: avoid !important; }
+          #__onlyPrint img { position: absolute !important; inset: 0 !important; margin: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; page-break-inside: avoid !important; display: block !important; background:#fff !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
         }
       `;
       document.head.appendChild(style);
     }
 
-    // ✅ Print ONLY the uploaded image — keep it on ONE page
     async function printUploaded() {
       ensureOnlyImagePrintCSS();
-
       const srcImg = document.querySelector('#printArea img');
       if (!srcImg) { toaster('Please upload an image first.'); return; }
-
-      // Convert to a data URL to avoid blob lifecycle issues
       let dataUrl;
       try {
         if (srcImg.src.startsWith('data:')) {
@@ -349,41 +319,24 @@
           ctx.drawImage(srcImg, 0, 0);
           dataUrl = c.toDataURL('image/png');
         }
-      } catch (e) {
-        toaster('Could not prepare image for printing');
-        return;
-      }
+      } catch (e) { toaster('Could not prepare image for printing'); return; }
 
-      // Create / reuse the print-only container as the last body child
       let holder = document.getElementById('__onlyPrint');
       if (!holder) {
         holder = document.createElement('div');
         holder.id = '__onlyPrint';
         document.body.appendChild(holder);
-      } else {
-        document.body.appendChild(holder);
-      }
+      } else { document.body.appendChild(holder); }
       holder.innerHTML = '';
-
-      const img = new Image();
-      img.alt = 'print';
-      img.src = dataUrl;
-      holder.appendChild(img);
-
-      // Flush layout so Chrome captures the single-page layout
+      const img = new Image(); img.alt = 'print'; img.src = dataUrl; holder.appendChild(img);
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
       try { window.print(); } catch (e) {}
-
-      // Optional cleanup
       setTimeout(() => { holder.innerHTML = ''; }, 1000);
     }
   </script>
 
   <!-- 🔧 PATCH: print fix shim (v1.0.3) -->
   <script>
-    // Keep original HTML intact. This shim only overrides printUploaded()
-    // with an iframe-based print that reliably renders on Android print.
     (function(){
       const VERSION = '1.0.3';
       function getPrintFrame(){
@@ -399,8 +352,6 @@
       async function printUploadedPatched(){
         const imgEl=document.querySelector('#printArea img');
         if(!imgEl){ try{toaster('Please upload an image first.');}catch{} return; }
-
-        // Rasterize image to canvas → PNG data URL (ensures pixels for Android Print)
         const c=document.createElement('canvas');
         c.width=imgEl.naturalWidth||imgEl.width||800;
         c.height=imgEl.naturalHeight||imgEl.height||600;
@@ -410,8 +361,6 @@
         try{ if(imgEl.decode) await imgEl.decode(); }catch{}
         ctx.drawImage(imgEl,0,0);
         const dataUrl=c.toDataURL('image/png');
-
-        // Hidden iframe with strict print CSS
         const f=getPrintFrame();
         const doc=f.contentDocument||f.contentWindow.document;
         doc.open();
@@ -422,11 +371,7 @@
             @page { size: A4; margin: 0 }
             html,body{margin:0;height:100%}
             .page{display:grid;place-items:center;width:100%;height:100%}
-            img{
-              max-width:100%;max-height:100%;object-fit:contain;background:#fff;
-              -webkit-print-color-adjust:exact; print-color-adjust:exact;
-              image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;
-            }
+            img{ max-width:100%;max-height:100%;object-fit:contain;background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
           </style>
           </head><body><div class="page"><img id="p"></div></body></html>
         `);
@@ -439,10 +384,7 @@
         f.contentWindow.print();
         try{ toaster?.('Sent to Android Print…'); }catch{}
       }
-      // override original with patched version
       window.printUploaded = printUploadedPatched;
-      // optional: surface version to devtools
-      console.log('Print shim ready v' + VERSION);
     })();
   </script>
 
