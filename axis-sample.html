@@ -8,7 +8,7 @@
   <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
-    /* ALL YOUR ORIGINAL CSS REMAINS EXACTLY THE SAME */
+    /* CSS REMAINS IDENTICAL */
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
@@ -52,7 +52,7 @@
     #printArea pre{margin:0;padding:16px;white-space:pre-wrap;word-break:break-word;width:100%}
     footer{padding:40px 0;color:var(--muted)}
     .legal{font-size:12px;opacity:.8}
-    .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px); transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px; border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s; pointer-events:none}
+    .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px); transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px; border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s; pointer-events:none; z-index:9999;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
     @media print { body { margin:0 } header, .hero, footer, nav.actions, .toast { display: none !important; } @page { margin: 1cm; } }
   </style>
@@ -157,13 +157,14 @@
           <p class="muted" style="margin:0 0 12px">Choose a file, or open the scanner directly.</p>
 
           <div class="file-row">
-            <!-- 1. Existing Upload Input -->
+            <!-- 1. Existing Standard Upload Input -->
             <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 250px;" />
             
-            <!-- 2. NEW Direct Scan Button -->
-            <button class="btn outline" onclick="launchDirectScanner()" style="display: flex; align-items: center; gap: 8px;">
+            <!-- 2. Direct Scan Button & Hidden Input -->
+            <button class="btn outline" onclick="triggerDirectScan()" style="display: flex; align-items: center; gap: 8px;">
                 <span aria-hidden="true">📸</span> Direct Scan
             </button>
+            <input id="directScanInput" type="file" accept="application/vnd.hitachi.scan" style="display: none;" />
 
             <!-- 3. Existing Print Button -->
             <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
@@ -195,95 +196,111 @@
     function toaster(msg){
       let t=document.querySelector('.toast');
       if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}
-      t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);
+      t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
     }
     function primaryCTA(){toaster('Opening account flow (demo)')}
     function fakeSubmit(e){e.preventDefault();toaster('Thanks! Team will reach out.');return false}
     function printPage(){ toaster('Opening print dialog...'); window.print(); }
     document.getElementById('year').textContent=new Date().getFullYear();
 
-    // --- NEW DIRECT SCAN LOGIC ---
-    function launchDirectScanner() {
-        // We pass the current URL so the app knows where to return the Base64 data
-        const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
-        const intentUrl = `hpy-scan://start?returnUrl=${currentUrl}`;
-        window.location.href = intentUrl;
-    }
-
-    // Check if we just returned from the Direct Scanner with Base64 data
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const scanData = urlParams.get('scanData');
-        
-        if (scanData) {
-            // Remove the huge string from the URL bar immediately for cleaner UX
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-            // Set the preview
-            const printArea = document.getElementById('printArea');
-            const fileNameEl = document.getElementById('fileName');
-            
-            printArea.innerHTML = '';
-            fileNameEl.textContent = 'direct_scan.jpg';
-            
-            const img = document.createElement('img');
-            img.src = "data:image/jpeg;base64," + scanData;
-            img.alt = "Scanned Document";
-            printArea.appendChild(img);
-            
-            toaster('Direct scan received!');
-            
-            // Scroll down to the preview area
-            scrollToId('uploadSection');
-        }
-    });
-
-    // --- EXISTING FILE INPUT LOGIC ---
     const fileInput = document.getElementById('fileInput');
+    const directScanInput = document.getElementById('directScanInput');
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
 
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0];
+    // --- ERROR HANDLING FOR CANCELLATION ---
+    let directScanClicked = false;
+    function triggerDirectScan() {
+        directScanClicked = true;
+        document.getElementById('directScanInput').click();
+    }
+
+    // Detect when user returns from the app without selecting a file
+    window.addEventListener('focus', () => {
+        if (directScanClicked) {
+            setTimeout(() => {
+                if (directScanInput.files.length === 0) {
+                    toaster("Scan was cancelled or failed to process.");
+                }
+                directScanClicked = false;
+            }, 800); // Give the browser time to populate the file array
+        }
+    });
+
+    // --- REWRITTEN PREVIEW LOGIC WITH ERROR HANDLING ---
+    async function handleFileSelection(file, isDirectScan) {
       printArea.innerHTML = '';
       fileNameEl.textContent = '';
+      
       if (!file) {
-        printArea.innerHTML = '<div class="placeholder">No file selected yet.</div>';
+        printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">No file received.</div>';
         return;
       }
-      fileNameEl.textContent = file.name;
+      
+      // The browser might strip the name from custom intents. Fallback provided.
+      const name = file.name || (isDirectScan ? 'scanned_document.jpg' : 'unknown_file');
+      fileNameEl.textContent = name;
       const type = file.type || '';
       const url = URL.createObjectURL(file);
 
-      if (type.startsWith('image/')) {
+      // Force image rendering if it came from the Direct Scan input, bypassing MIME checks
+      if (isDirectScan || type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
         const img = document.createElement('img');
-        img.src = url; img.alt = file.name;
+        
+        // Error handling if the image stream is corrupted
+        img.onerror = () => {
+            printArea.innerHTML = '<div class="placeholder" style="color:#E60012; font-weight:bold;">Error: The scanned image could not be loaded. The data may be corrupted.</div>';
+            toaster('Failed to render image');
+        };
+        img.onload = () => { toaster('Scan successful! Ready to print.'); };
+        
+        img.src = url; 
+        img.alt = name;
         printArea.appendChild(img);
-        toaster('Image ready for print');
         return;
       }
+      
       if (type === 'application/pdf') {
         const iframe = document.createElement('iframe');
         iframe.src = url;
         printArea.appendChild(iframe);
-        toaster('PDF preview shown (Print Uploaded prints images only)');
+        toaster('PDF preview shown');
         return;
       }
-      if (type === 'text/plain' || file.name.endsWith('.txt')) {
+      if (type === 'text/plain' || name.endsWith('.txt')) {
         const text = await file.text();
         const pre = document.createElement('pre');
         pre.textContent = text;
         printArea.appendChild(pre);
-        toaster('Text preview shown (Print Uploaded prints images only)');
+        toaster('Text preview shown');
         return;
       }
+      
       const info = document.createElement('div');
       info.className = 'placeholder';
       info.textContent = 'Unsupported file type. Try image, PDF, or text.';
       printArea.appendChild(info);
+    }
+
+    // Direct Scan Listener
+    directScanInput.addEventListener('change', (e) => {
+        directScanClicked = false; // Reset trigger
+        if (e.target.files.length > 0) {
+            // Sync it to the main file input for the print functionality
+            const dt = new DataTransfer();
+            dt.items.add(e.target.files[0]);
+            fileInput.files = dt.files;
+            
+            handleFileSelection(e.target.files[0], true);
+        }
     });
 
-    // --- YOUR EXISTING PRINT LOGIC (Left entirely untouched) ---
+    // Standard File Input Listener
+    fileInput.addEventListener('change', (e) => {
+        handleFileSelection(e.target.files?.[0], false);
+    });
+
+    // --- EXISTING PRINT LOGIC (No Changes) ---
     function ensureOnlyImagePrintCSS() {
       if (document.getElementById('onlyImagePrintCSS')) return;
       const style = document.createElement('style');
