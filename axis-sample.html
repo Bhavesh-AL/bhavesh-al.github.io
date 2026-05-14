@@ -8,7 +8,6 @@
   <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
-    /* CSS REMAINS IDENTICAL */
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
@@ -205,7 +204,7 @@
     // --- DIRECT SCAN LOGIC (DEEP LINK) ---
     function triggerDirectScan() {
         const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
-        // This instantly opens your Android app, zero menus.
+        // Instantly opens the Android app without menus
         window.location.href = `hpy-scan://start?returnUrl=${currentUrl}`;
     }
 
@@ -227,7 +226,7 @@
             const img = document.createElement('img');
             
             img.onerror = () => {
-                printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">Failed to render image.</div>';
+                printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">Failed to render image. URL payload may be restricted by this browser.</div>';
                 toaster('Failed to render image');
             };
             
