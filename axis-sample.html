@@ -8,7 +8,6 @@
   <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
-    /* CSS REMAINS IDENTICAL */
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
@@ -64,7 +63,7 @@
       <div class="brand" aria-label="Hitachi Axis">
         <span class="pill">Hitachi Axis</span>
         <small style="opacity:.85;margin-left:8px">Digital Banking</small>
-        <small style="opacity:.6;margin-left:6px">v1.0.5</small>
+        <small style="opacity:.6;margin-left:6px">v1.0.6</small>
       </div>
 
       <nav class="actions" aria-label="Primary">
@@ -96,9 +95,61 @@
       </div>
     </section>
 
-    <!-- Context sections remain visually identical -->
-    
-    <section id="uploadSection" class="safe" style="margin-top: 40px;">
+    <section id="features" class="features safe">
+      <div class="container">
+        <h2 style="margin:0 0 14px">Why customers love it</h2>
+        <div class="grid cards">
+          <article class="card"><strong>📱 Unified dashboard</strong><p>Optimized for TWA full-screen.</p></article>
+          <article class="card"><strong>🧠 Smart insights</strong><p>Spending categorization & reminders.</p></article>
+          <article class="card"><strong>🛡️ Secure by design</strong><p>HTTPS, CSP-friendly, kiosk-ready.</p></article>
+          <article class="card"><strong>⚙️ TWA-ready</strong><p>Launch via Digital Asset Links.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="products" class="product-strip safe">
+      <div class="container">
+        <h2 style="margin:0 0 14px">Products</h2>
+        <div class="grid product-list">
+          <div class="card">
+            <span class="tag">Savings</span>
+            <strong>Digital Savings Account</strong>
+            <p class="muted">Zero paperwork onboarding with video KYC.</p>
+            <div class="cta"><a class="btn outline" href="#" onclick="primaryCTA();return false;">Apply now</a></div>
+          </div>
+          <div class="card">
+            <span class="tag" style="background:var(--hitachi);color:#fff;padding:6px 10px;border-radius:999px;font-size:12px;">Credit</span>
+            <strong>Axis Credit Card</strong>
+            <p class="muted">Rewards, EMI, and powerful controls.</p>
+            <div class="cta"><a class="btn outline" href="#" onclick="toaster('Pre-approved offer coming soon')">Check offers</a></div>
+          </div>
+          <div class="card">
+            <span class="tag" style="background:#0ea5e9;color:#fff;padding:6px 10px;border-radius:999px;font-size:12px;">Invest</span>
+            <strong>Mutual Funds</strong>
+            <p class="muted">SIP in minutes. Track performance in real-time.</p>
+            <div class="cta"><a class="btn outline" href="#" onclick="toaster('NAV charts demo only')">View NAVs</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="safe" aria-labelledby="contact">
+      <div class="container">
+        <h2 id="contact" style="margin:0 0 14px">Need help?</h2>
+        <div class="card">
+          <form class="grid" style="grid-template-columns:1fr;gap:12px" onsubmit="return fakeSubmit(event)">
+            <label><span>Name</span><br/><input required class="field" type="text" placeholder="Your name" /></label>
+            <label><span>Email</span><br/><input required class="field" type="email" placeholder="you@example.com" /></label>
+            <label><span>Message</span><br/><textarea class="field" rows="4" placeholder="How can we help?"></textarea></label>
+            <button class="btn primary" type="submit">Send message</button>
+            <small class="legal">Demo form — does not send data.</small>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ✅ UPLOAD & PRINT -->
+    <section id="uploadSection" class="safe">
       <div class="container">
         <div class="card">
           <h2 style="margin:0 0 10px">Upload & Print</h2>
@@ -108,7 +159,7 @@
             <!-- 1. Existing Standard Upload Input -->
             <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 250px;" />
             
-            <!-- 2. DIRECT SCAN BUTTON (Zero Menus - Direct Link) -->
+            <!-- 2. DIRECT SCAN BUTTON (Deep Link) -->
             <button class="btn outline" onclick="triggerDirectScan()" style="display: flex; align-items: center; gap: 8px;">
                 <span aria-hidden="true">📸</span> Direct Scan
             </button>
@@ -137,27 +188,33 @@
 
   <script>
     // Helpers
+    function setVh(){document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');}
+    setVh(); addEventListener('resize', setVh);
     function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});}
     function toaster(msg){
       let t=document.querySelector('.toast');
       if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}
       t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
     }
+    function primaryCTA(){toaster('Opening account flow (demo)')}
+    function fakeSubmit(e){e.preventDefault();toaster('Thanks! Team will reach out.');return false}
     function printPage(){ toaster('Opening print dialog...'); window.print(); }
     document.getElementById('year').textContent=new Date().getFullYear();
 
-    // --- DIRECT SCAN LOGIC ---
+    // --- DIRECT SCAN LOGIC (DEEP LINK) ---
     function triggerDirectScan() {
         const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
+        // Instantly opens the Android app via Deep Link
         window.location.href = `hpy-scan://start?returnUrl=${currentUrl}`;
     }
 
-    // Intercept Returning Data
+    // Intercept Returning Compressed Image from Android App
     window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const scanData = urlParams.get('scanData');
         
         if (scanData) {
+            // Clean up the URL bar immediately so it doesn't stay bloated
             window.history.replaceState({}, document.title, window.location.pathname);
             
             const printArea = document.getElementById('printArea');
@@ -169,12 +226,13 @@
             const img = document.createElement('img');
             
             img.onerror = () => {
-                printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">Failed to render image. URL payload may be restricted.</div>';
+                printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">Failed to render image. Payload may have been corrupted.</div>';
                 toaster('Failed to render image');
             };
             
             img.onload = () => { toaster('Scan preview received!'); };
             
+            // Render the Base64 string as an image
             img.src = "data:image/jpeg;base64," + scanData;
             img.alt = "Scanned Document Preview";
             printArea.appendChild(img);
