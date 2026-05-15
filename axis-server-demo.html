@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Axis Hitachi - Document Scanner</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f8fafc; color: #111; }
+    header { background: linear-gradient(90deg, #A10054, #E60012); color: #fff; padding: 20px; text-align: center; }
+    .container { max-width: 800px; margin: 40px auto; padding: 20px; }
+    .card { background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
+    
+    .btn-row { display: flex; justify-content: center; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+    .btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+    .btn-primary { background: #A10054; color: white; }
+    .btn-outline { background: transparent; color: #A10054; border: 2px solid #A10054; }
+    
+    #printArea { margin-top: 30px; min-height: 200px; border: 2px dashed #ddd; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff;}
+    #printArea img { max-width: 100%; height: auto; }
+    
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 50px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 1000; }
+    .toast.show { opacity: 1; bottom: 40px; }
+    
+    @media print {
+        body { margin: 0; background: white; }
+        header, .btn-row, h2, p, .toast { display: none !important; }
+        #printArea { border: none; }
+        #printArea img { width: 100vw; height: 100vh; object-fit: contain; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 style="margin:0; font-size: 24px;">Hitachi Axis - Digital Banking</h1>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Document Scanner</h2>
+      <p style="color: #666;">Instantly scan hardware documents locally to the web.</p>
+      
+      <div class="btn-row">
+        <!-- Direct Scan Button (Zero Menus) -->
+        <button class="btn btn-outline" onclick="triggerDirectScan()">📸 Direct Hardware Scan</button>
+        <!-- Print Button -->
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Print Document</button>
+      </div>
+
+      <div id="printArea">
+        <span style="color: #aaa;" id="placeholderText">No scan received yet.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Message here</div>
+
+  <script>
+    function toaster(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // 1. Send the user instantly to the Android App without menus
+    function triggerDirectScan() {
+        const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
+        window.location.href = `hpy-scan://start?returnUrl=${currentUrl}`;
+    }
+
+    // 2. Automatically intercept the return trip
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // If we see ?scanReady=true, the Android app has started its local server
+        if (urlParams.get('scanReady') === 'true') {
+            
+            // Clean the URL bar so it doesn't stay there if user refreshes
+            window.history.replaceState({}, document.title, window.location.pathname);
+            toaster("Fetching high-resolution scan...");
+
+            // Fetch the massive, uncompressed file directly from the Android App's local server!
+            fetch('http://127.0.0.1:8080/image')
+                .then(response => {
+                    if (!response.ok) throw new Error("Image not found");
+                    return response.blob();
+                })
+                .then(blob => {
+                    const printArea = document.getElementById('printArea');
+                    printArea.innerHTML = ''; // Clear placeholder
+                    
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(blob);
+                    printArea.appendChild(img);
+                    
+                    toaster("Scan successfully loaded!");
+                    
+                    // Crucial Step: Now that we have the image safely stored in the browser,
+                    // we tell the Android app to remotely shut down its server and close itself.
+                    fetch('http://127.0.0.1:8080/shutdown', { method: 'POST' }).catch(e => console.log(e));
+                })
+                .catch(error => {
+                    toaster("Failed to retrieve scan from device.");
+                    console.error("Local Server Error:", error);
+                });
+        }
+    });
+  </script>
+
+</body>
+</html>
