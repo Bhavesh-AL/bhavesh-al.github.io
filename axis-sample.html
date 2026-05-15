@@ -63,7 +63,7 @@
       <div class="brand" aria-label="Hitachi Axis">
         <span class="pill">Hitachi Axis</span>
         <small style="opacity:.85;margin-left:8px">Digital Banking</small>
-        <small style="opacity:.6;margin-left:6px">v1.0.6</small>
+        <small style="opacity:.6;margin-left:6px">v1.0.7</small>
       </div>
 
       <nav class="actions" aria-label="Primary">
@@ -159,10 +159,14 @@
             <!-- 1. Existing Standard Upload Input -->
             <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 250px;" />
             
-            <!-- 2. DIRECT SCAN BUTTON (Deep Link) -->
-            <button class="btn outline" onclick="triggerDirectScan()" style="display: flex; align-items: center; gap: 8px;">
+            <!-- 2. NEW Direct Scan Button -->
+            <!-- Clicking this button triggers the hidden input below -->
+            <button class="btn outline" onclick="document.getElementById('directScanInput').click()" style="display: flex; align-items: center; gap: 8px;">
                 <span aria-hidden="true">📸</span> Direct Scan
             </button>
+            
+            <!-- CRITICAL: This is the hidden input that bypasses the menu by using your unique MIME type -->
+            <input id="directScanInput" type="file" accept="application/x-hitachi-scan" style="display: none;" />
 
             <!-- 3. Existing Print Button -->
             <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
@@ -201,53 +205,33 @@
     function printPage(){ toaster('Opening print dialog...'); window.print(); }
     document.getElementById('year').textContent=new Date().getFullYear();
 
-    // --- DIRECT SCAN LOGIC (DEEP LINK) ---
-    function triggerDirectScan() {
-        const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
-        // Instantly opens the Android app via Deep Link
-        window.location.href = `hpy-scan://start?returnUrl=${currentUrl}`;
-    }
-
-    // Intercept Returning Compressed Image from Android App
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const scanData = urlParams.get('scanData');
-        
-        if (scanData) {
-            // Clean up the URL bar immediately so it doesn't stay bloated
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-            const printArea = document.getElementById('printArea');
-            const fileNameEl = document.getElementById('fileName');
-            
-            printArea.innerHTML = '';
-            fileNameEl.textContent = 'direct_scan_preview.jpg';
-            
-            const img = document.createElement('img');
-            
-            img.onerror = () => {
-                printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">Failed to render image. Payload may have been corrupted.</div>';
-                toaster('Failed to render image');
-            };
-            
-            img.onload = () => { toaster('Scan preview received!'); };
-            
-            // Render the Base64 string as an image
-            img.src = "data:image/jpeg;base64," + scanData;
-            img.alt = "Scanned Document Preview";
-            printArea.appendChild(img);
-            
-            scrollToId('uploadSection');
-        }
-    });
-
-    // --- STANDARD FILE INPUT LOGIC ---
     const fileInput = document.getElementById('fileInput');
+    const directScanInput = document.getElementById('directScanInput');
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
 
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0];
+    // --- DIRECT SCAN RETURN LOGIC ---
+    // When the Android app returns the file via the custom application type, 
+    // we process it exactly like a normal file.
+    directScanInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            // We pass the returned file over to the main file handler logic
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(e.target.files[0]);
+            fileInput.files = dataTransfer.files;
+            
+            // true flag indicates it came from the Direct Scan button
+            handleFileSelection(e.target.files[0], true);
+        }
+    });
+
+    // --- STANDARD UPLOAD RETURN LOGIC ---
+    fileInput.addEventListener('change', (e) => {
+        handleFileSelection(e.target.files?.[0], false);
+    });
+
+    // --- CENTRALIZED PREVIEW LOGIC ---
+    async function handleFileSelection(file, isDirectScan) {
       printArea.innerHTML = '';
       fileNameEl.textContent = '';
       
@@ -256,28 +240,36 @@
         return;
       }
       
-      const name = file.name;
+      // If it's a direct scan, the file name might be stripped, so we provide one
+      const name = isDirectScan ? 'scanned_document.jpg' : file.name;
       fileNameEl.textContent = name;
-      const type = file.type || '';
+      
+      // Android securely passes back a URI that we can read directly via object URL
       const url = URL.createObjectURL(file);
 
-      if (type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
+      // We explicitly force the rendering of images from the direct scan
+      // because the file technically comes back with the type "image/jpeg" 
+      // per your Android Kotlin code.
+      if (isDirectScan || file.type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
         const img = document.createElement('img');
         img.src = url; 
         img.alt = name;
+        
+        img.onload = () => toaster(isDirectScan ? 'Direct scan received!' : 'Image ready for print');
+        
         printArea.appendChild(img);
-        toaster('Image ready for print');
+        scrollToId('uploadSection');
         return;
       }
       
-      if (type === 'application/pdf') {
+      if (file.type === 'application/pdf') {
         const iframe = document.createElement('iframe');
         iframe.src = url;
         printArea.appendChild(iframe);
         toaster('PDF preview shown');
         return;
       }
-      if (type === 'text/plain' || name.endsWith('.txt')) {
+      if (file.type === 'text/plain' || name.endsWith('.txt')) {
         const text = await file.text();
         const pre = document.createElement('pre');
         pre.textContent = text;
@@ -290,9 +282,9 @@
       info.className = 'placeholder';
       info.textContent = 'Unsupported file type. Try image, PDF, or text.';
       printArea.appendChild(info);
-    });
+    }
 
-    // --- EXISTING PRINT LOGIC ---
+    // --- EXISTING PRINT LOGIC (No Changes) ---
     function ensureOnlyImagePrintCSS() {
       if (document.getElementById('onlyImagePrintCSS')) return;
       const style = document.createElement('style');
