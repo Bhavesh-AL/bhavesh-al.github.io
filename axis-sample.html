@@ -8,6 +8,7 @@
   <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
 
   <style>
+    /* CSS REMAINS IDENTICAL */
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     *, *::before, *::after { box-sizing: border-box }
     html, body { height: 100%; }
@@ -95,7 +96,7 @@
       </div>
     </section>
 
-    <!-- Content Sections Omitted for brevity, they remain identical -->
+    <!-- Context sections remain visually identical -->
     
     <section id="uploadSection" class="safe" style="margin-top: 40px;">
       <div class="container">
@@ -107,12 +108,10 @@
             <!-- 1. Existing Standard Upload Input -->
             <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 250px;" />
             
-            <!-- 2. DIRECT SCAN BUTTON & INPUT -->
-            <!-- Note the secret mime type! This skips the browser menu entirely -->
-            <button class="btn outline" onclick="document.getElementById('directScanInput').click()" style="display: flex; align-items: center; gap: 8px;">
+            <!-- 2. DIRECT SCAN BUTTON (Zero Menus - Direct Link) -->
+            <button class="btn outline" onclick="triggerDirectScan()" style="display: flex; align-items: center; gap: 8px;">
                 <span aria-hidden="true">📸</span> Direct Scan
             </button>
-            <input id="directScanInput" type="file" accept="image/x-hpy-scan" style="display: none;" />
 
             <!-- 3. Existing Print Button -->
             <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
@@ -147,45 +146,48 @@
     function printPage(){ toaster('Opening print dialog...'); window.print(); }
     document.getElementById('year').textContent=new Date().getFullYear();
 
+    // --- DIRECT SCAN LOGIC ---
+    function triggerDirectScan() {
+        const currentUrl = encodeURIComponent(window.location.href.split('?')[0]); 
+        window.location.href = `hpy-scan://start?returnUrl=${currentUrl}`;
+    }
+
+    // Intercept Returning Data
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const scanData = urlParams.get('scanData');
+        
+        if (scanData) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            const printArea = document.getElementById('printArea');
+            const fileNameEl = document.getElementById('fileName');
+            
+            printArea.innerHTML = '';
+            fileNameEl.textContent = 'direct_scan_preview.jpg';
+            
+            const img = document.createElement('img');
+            
+            img.onerror = () => {
+                printArea.innerHTML = '<div class="placeholder" style="color:#E60012;">Failed to render image. URL payload may be restricted.</div>';
+                toaster('Failed to render image');
+            };
+            
+            img.onload = () => { toaster('Scan preview received!'); };
+            
+            img.src = "data:image/jpeg;base64," + scanData;
+            img.alt = "Scanned Document Preview";
+            printArea.appendChild(img);
+            
+            scrollToId('uploadSection');
+        }
+    });
+
+    // --- STANDARD FILE INPUT LOGIC ---
     const fileInput = document.getElementById('fileInput');
-    const directScanInput = document.getElementById('directScanInput');
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
 
-    // --- MAGIC RENDERER FOR DIRECT SCANS ---
-    directScanInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        printArea.innerHTML = '';
-        fileNameEl.textContent = 'direct_scan.jpg';
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            // Android returns our fake MIME type to bypass Chrome's security block.
-            // Here, we swap the fake MIME type back to a standard JPEG so the HTML <img> tag can read it!
-            const rawData = event.target.result;
-            const safeJpegUrl = rawData.replace('data:image/x-hpy-scan', 'data:image/jpeg');
-
-            const img = document.createElement('img');
-            img.src = safeJpegUrl;
-            img.alt = "Scanned Document";
-            printArea.appendChild(img);
-            
-            // Sync to standard file input for the Print function
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            fileInput.files = dt.files;
-
-            toaster('Direct scan received!');
-            scrollToId('uploadSection');
-        };
-        // Reads the local file seamlessly
-        reader.readAsDataURL(file);
-    });
-
-
-    // --- STANDARD FILE INPUT LOGIC (NO CHANGES) ---
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files?.[0];
       printArea.innerHTML = '';
@@ -232,7 +234,7 @@
       printArea.appendChild(info);
     });
 
-    // --- EXISTING PRINT LOGIC (No Changes) ---
+    // --- EXISTING PRINT LOGIC ---
     function ensureOnlyImagePrintCSS() {
       if (document.getElementById('onlyImagePrintCSS')) return;
       const style = document.createElement('style');
