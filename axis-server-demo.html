@@ -46,7 +46,6 @@
 <div class="toast" id="toast">Message here</div>
 
 <script>
-    // UPDATED: Now matches the secure local IP and Port 9000 used in the Android App
     const SERVER_URL = "http://127.0.0.1:9000";
     let isWaitingForScan = false;
 
@@ -59,8 +58,6 @@
 
     function openScanner() {
         document.getElementById('msg').innerText = "Initiating scanner connection...";
-        
-        // Mark that we are now waiting for the user to return from the app
         isWaitingForScan = true; 
         
         const intentUrl = `intent://start/#Intent;scheme=hpy-scan;end`;
@@ -72,7 +69,6 @@
         a.click();
         document.body.removeChild(a);
 
-        // Fallback UI incase the browser blocked the programmatic click
         document.getElementById('preview').innerHTML = `
             <div style="padding: 20px;">
                 <h3 style="color: #333;">Opening Scanner App...</h3>
@@ -82,13 +78,9 @@
         `;
     }
 
-    // This event automatically fires when the user minimizes the scanner app 
-    // and this specific browser tab becomes visible again.
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible" && isWaitingForScan) {
-            isWaitingForScan = false; // Reset so it doesn't fire again
-            
-            // Give the Android OS 500ms to fully resume the browser before hitting localhost
+            isWaitingForScan = false; 
             setTimeout(fetchImageAndCloseApp, 500); 
         }
     });
@@ -96,23 +88,24 @@
     function fetchImageAndCloseApp() {
         toaster("Retrieving High-Res Scan...");
         
-        // Fetch from Port 9000
         fetch(`${SERVER_URL}/get-scan`)
             .then(res => {
-                if (!res.ok) throw new Error("File not found on server");
+                // Catches 404, 500, or any other non-200 custom code
+                if (!res.ok) throw new Error("File not found or hardware error occurred.");
                 return res.blob();
             })
             .then(blob => {
                 const url = URL.createObjectURL(blob);
                 document.getElementById('preview').innerHTML = `<img src="${url}">`;
                 toaster("Scan Loaded!");
-                
-                // Sends the kill signal to Android via Port 9000
-                fetch(`${SERVER_URL}/close-app`).catch(() => {});
             })
             .catch((e) => { 
-                document.getElementById('msg').innerText = "Scan cancelled or no document found."; 
+                document.getElementById('msg').innerText = "Scan cancelled or hardware error occurred."; 
                 console.error("Fetch error:", e);
+            })
+            .finally(() => {
+                // Guaranteed safety cleanup pathway to clear tasks
+                fetch(`${SERVER_URL}/close-app`).catch(() => {});
             });
     }
 </script>
