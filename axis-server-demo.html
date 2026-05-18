@@ -93,7 +93,7 @@
         try {
             const response = await fetch(`${SERVER_URL}/get-scan`);
             
-            // Extract the integer code directly from the response header
+            // Read the custom header exactly as configured in NanoHTTPD
             const headerCodeStr = response.headers.get("X-Scan-Status-Code");
             if (headerCodeStr) {
                 hardwareCode = parseInt(headerCodeStr, 10);
@@ -106,37 +106,28 @@
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             document.getElementById('preview').innerHTML = `<img src="${url}">`;
-            document.getElementById('msg').innerText = "Scan loaded successfully.";
             toaster("Scan Loaded!");
             
         } catch (e) {
             console.error("Fetch failed. Hardware Code:", hardwareCode);
             let userDisplayMessage = "Scan operation was cancelled or timed out.";
             
-            // Switch purely based on the explicit integer code returned from Android
-            switch(hardwareCode) {
-                case 6003:
-                    userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry (6003).";
-                    break;
-                case 6004:
-                    userDisplayMessage = "Scan Failed: Critical hardware error reported (6004).";
-                    break;
-                case 6011:
-                    userDisplayMessage = "Scan Failed: Paper jam or mechanical track blockage detected (6011).";
-                    break;
-                case 6005:
-                    userDisplayMessage = "Scan Failed: Device is currently busy executing another operation (6005).";
-                    break;
-                case 6010:
-                    userDisplayMessage = "Scan Failed: Connection lost. Check hardware cables (6010).";
-                    break;
-                case 6007:
-                    userDisplayMessage = "Scan Failed: Initialization setup failed (6007).";
-                    break;
+            // Evaluate strictly on the numeric code passed by Android
+            if (hardwareCode === 6003) {
+                userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry (6003).";
+            } else if (hardwareCode === 6004) {
+                userDisplayMessage = "Scan Failed: Critical hardware error reported (6004).";
+            } else if (hardwareCode === 6011) {
+                userDisplayMessage = "Scan Failed: Paper jam or track blockage (6011).";
+            } else if (hardwareCode === 6005) {
+                userDisplayMessage = "Scan Failed: Device is currently busy (6005).";
+            } else if (hardwareCode === 6010) {
+                userDisplayMessage = "Scan Failed: Connection lost (6010).";
+            } else if (hardwareCode === 6007) {
+                userDisplayMessage = "Scan Failed: Initialization setup failed (6007).";
             }
             
             toaster("Operation Failed");
-            
             document.getElementById('preview').innerHTML = `
                 <p id="msg" style="color: #A10054; padding: 20px; font-weight: bold;">
                     ${userDisplayMessage}
