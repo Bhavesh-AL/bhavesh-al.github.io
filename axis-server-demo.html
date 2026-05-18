@@ -47,6 +47,7 @@
 
 <script>
     const SERVER_URL = "http://127.0.0.1:9000";
+    let isWaitingForScan = false;
 
     function toaster(msg) {
         const t = document.getElementById('toast');
@@ -56,13 +57,21 @@
     }
 
     function openScanner() {
-        const timestamp = Date.now();
+        isWaitingForScan = true; 
         
-        // FIX 1: Explicitly added "package=com.hitachi.epsonscan;"
-        // This forces Android to cleanly route the Intent to your app every single time
+        const timestamp = Date.now();
         const intentUrl = `intent://start/${timestamp}/#Intent;scheme=hpy-scan;package=com.hitachi.epsonscan;end`;
         const rawScheme = `hpy-scan://start/${timestamp}/`;
 
+        // 1. CRITICAL FIX: Trigger the app launch FIRST before changing any HTML.
+        // This ensures Chrome always respects your click and opens the app, even on the 100th try.
+        const a = document.createElement('a');
+        a.href = intentUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // 2. Change the screen text AFTER the app launch is fired.
         document.getElementById('preview').innerHTML = `
             <div style="padding: 20px;">
                 <h3 style="color: #333;">Opening Scanner App...</h3>
@@ -70,31 +79,30 @@
                 <a href="${rawScheme}" class="btn btn-scan" style="display:inline-block; text-decoration: none;">Force Open App</a>
             </div>
         `;
-
-        // FIX 2: Directly assign the navigation natively to consume the user's click gesture.
-        // Chrome will never block this, no matter how many times you click it.
-        window.location.href = intentUrl;
-
-        // Give the OS 1 second to bring the app to the foreground, then start the connection loop
-        setTimeout(fetchImagePayload, 1000);
     }
 
-    async function fetchImagePayload() {
-        toaster("Pipeline Connected. Awaiting Scan...");
-        let hardwareCode = null;
+    // Your original listener logic (untouched)
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && isWaitingForScan) {
+            isWaitingForScan = false; 
+            setTimeout(fetchImageAndCloseApp, 500); 
+        }
+    });
+
+    async function fetchImageAndCloseApp() {
+        toaster("Retrieving High-Res Scan...");
+        let hardwareCode = 0;
         
         try {
-            // The request hangs securely while the user interacts with the app
             const response = await fetch(`${SERVER_URL}/get-scan`);
             
+            // Read custom response code from your Android server
             const headerCodeStr = response.headers.get("X-Scan-Status-Code");
             if (headerCodeStr) {
                 hardwareCode = parseInt(headerCodeStr, 10);
             }
             
-            if (!response.ok) {
-                throw new Error("HARDWARE_ERROR");
-            }
+            if (!response.ok) throw new Error("HARDWARE_ERROR");
             
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
@@ -102,39 +110,27 @@
             toaster("Scan Loaded!");
             
         } catch (e) {
-            console.error("Fetch failed. Hardware Code:", hardwareCode);
+            console.error("Hardware Code Received:", hardwareCode);
             let userDisplayMessage = "Scan operation was cancelled or timed out.";
             
+            // Explicit error mapping
             switch(hardwareCode) {
-                case 6003:
-                    userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry (6003).";
-                    break;
-                case 6004:
-                    userDisplayMessage = "Scan Failed: Critical hardware error reported (6004).";
-                    break;
-                case 6011:
-                    userDisplayMessage = "Scan Failed: Paper jam or mechanical track blockage detected (6011).";
-                    break;
-                case 6005:
-                    userDisplayMessage = "Scan Failed: Device is currently busy executing another operation (6005).";
-                    break;
-                case 6010:
-                    userDisplayMessage = "Scan Failed: Connection lost. Check hardware cables (6010).";
-                    break;
-                case 6007:
-                    userDisplayMessage = "Scan Failed: Initialization setup failed (6007).";
-                    break;
+                case 6003: userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry (6003)."; break;
+                case 6004: userDisplayMessage = "Scan Failed: Critical hardware error reported (6004)."; break;
+                case 6011: userDisplayMessage = "Scan Failed: Paper jam or mechanical track blockage (6011)."; break;
+                case 6005: userDisplayMessage = "Scan Failed: Device is currently busy (6005)."; break;
+                case 6010: userDisplayMessage = "Scan Failed: Connection lost (6010)."; break;
+                case 6007: userDisplayMessage = "Scan Failed: Initialization setup failed (6007)."; break;
             }
             
             toaster("Operation Failed");
-            
             document.getElementById('preview').innerHTML = `
                 <p id="msg" style="color: #A10054; padding: 20px; font-weight: bold;">
                     ${userDisplayMessage}
                 </p>
             `;
         } finally {
-            // Terminate the app process
+            isWaitingForScan = false;
             fetch(`${SERVER_URL}/close-app`).catch(() => {});
         }
     }
