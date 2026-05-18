@@ -60,8 +60,12 @@
         document.getElementById('msg').innerText = "Initiating scanner connection...";
         isWaitingForScan = true; 
         
-        const intentUrl = `intent://start/#Intent;scheme=hpy-scan;end`;
-        const rawScheme = `hpy-scan://start/`;
+        // Generate a unique timestamp to force the browser to treat this as a unique URL
+        const timestamp = Date.now();
+        
+        // Append the timestamp into the intent path segment
+        const intentUrl = `intent://start/${timestamp}/#Intent;scheme=hpy-scan;end`;
+        const rawScheme = `hpy-scan://start/${timestamp}/`;
 
         const a = document.createElement('a');
         a.href = intentUrl;
@@ -90,7 +94,6 @@
         
         fetch(`${SERVER_URL}/get-scan`)
             .then(res => {
-                // Catches 404, 500, or any other non-200 custom code
                 if (!res.ok) throw new Error("File not found or hardware error occurred.");
                 return res.blob();
             })
@@ -104,7 +107,6 @@
                 console.error("Fetch error:", e);
             })
             .finally(() => {
-                // Guaranteed safety cleanup pathway to clear tasks
                 fetch(`${SERVER_URL}/close-app`).catch(() => {});
             });
     }
