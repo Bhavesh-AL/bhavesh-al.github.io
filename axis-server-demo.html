@@ -60,10 +60,7 @@
         document.getElementById('msg').innerText = "Initiating scanner connection...";
         isWaitingForScan = true; 
         
-        // Generate a unique timestamp to force the browser to treat this as a unique URL
         const timestamp = Date.now();
-        
-        // Append the timestamp into the intent path segment
         const intentUrl = `intent://start/${timestamp}/#Intent;scheme=hpy-scan;end`;
         const rawScheme = `hpy-scan://start/${timestamp}/`;
 
@@ -89,26 +86,63 @@
         }
     });
 
-    function fetchImageAndCloseApp() {
+    async function fetchImageAndCloseApp() {
         toaster("Retrieving High-Res Scan...");
         
-        fetch(`${SERVER_URL}/get-scan`)
-            .then(res => {
-                if (!res.ok) throw new Error("File not found or hardware error occurred.");
-                return res.blob();
-            })
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                document.getElementById('preview').innerHTML = `<img src="${url}">`;
-                toaster("Scan Loaded!");
-            })
-            .catch((e) => { 
-                document.getElementById('msg').innerText = "Scan cancelled or hardware error occurred."; 
-                console.error("Fetch error:", e);
-            })
-            .finally(() => {
-                fetch(`${SERVER_URL}/close-app`).catch(() => {});
-            });
+        try {
+            const response = await fetch(`${SERVER_URL}/get-scan`);
+            
+            // Read custom explicit metadata headers pushed from NanoHTTPD server
+            const hardwareCode = response.headers.get("X-Scan-Status-Code");
+            const hardwareMsg = response.headers.get("X-Scan-Message");
+            
+            if (!response.ok) {
+                throw new Error(hardwareMsg || "UNKNOWN_ERROR");
+            }
+            
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            document.getElementById('preview').innerHTML = `<img src="${url}">`;
+            document.getElementById('msg').innerText = "Scan loaded successfully.";
+            toaster("Scan Loaded!");
+            
+        } catch (e) {
+            console.error("Hardware Callback Catch:", e.message);
+            let userDisplayMessage = "Scan operation was cancelled or timed out.";
+            
+            switch(e.message) {
+                case "ERROR_NO_PAPER_OR_FEED_FAILURE":
+                    userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry.";
+                    break;
+                case "ERROR_HARDWARE_FAILURE":
+                    userDisplayMessage = "Scan Failed: Critical hardware error reported (6004).";
+                    break;
+                case "ERROR_MECHANICAL_JAM":
+                    userDisplayMessage = "Scan Failed: Paper jam or mechanical track blockage detected (6011).";
+                    break;
+                case "ERROR_SCANNER_BUSY":
+                    userDisplayMessage = "Scan Failed: Device is currently busy executing another operation.";
+                    break;
+                case "ERROR_CONNECTION_LOST":
+                    userDisplayMessage = "Scan Failed: Connection lost. Check hardware cables.";
+                    break;
+                case "ERROR_INITIALIZATION_FAILED":
+                    userDisplayMessage = "Scan Failed: Initialization setup failed (6007).";
+                    break;
+            }
+            
+            toaster("Operation Failed");
+            
+            document.getElementById('preview').innerHTML = `
+                <p id="msg" style="color: #A10054; padding: 20px; font-weight: bold;">
+                    ${userDisplayMessage}
+                </p>
+            `;
+        } finally {
+            isWaitingForScan = false;
+            // Dispatch cleanup termination signal to close background app activity window tasks
+            fetch(`${SERVER_URL}/close-app`).catch(() => {});
+        }
     }
 </script>
 
