@@ -47,14 +47,7 @@
 
 <script>
     const SERVER_URL = "http://127.0.0.1:8080";
-
-    window.onload = () => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get("fetch") === "true") {
-            window.history.replaceState({}, document.title, window.location.pathname);
-            fetchImageAndCloseApp();
-        }
-    };
+    let isWaitingForScan = false;
 
     function toaster(msg) {
         const t = document.getElementById('toast');
@@ -66,23 +59,18 @@
     function openScanner() {
         document.getElementById('msg').innerText = "Initiating scanner connection...";
         
-        const currentCleanUrl = encodeURIComponent(window.location.href.split('?')[0]);
+        // Mark that we are now waiting for the user to return from the app
+        isWaitingForScan = true; 
         
-        // 1. Chrome Intent string (Omit 'package' to avoid strict Application ID mismatches)
-        const intentUrl = `intent://start/?returnUrl=${currentCleanUrl}#Intent;scheme=hpy-scan;end`;
-        
-        // 2. Standard custom scheme for fallback button
-        const rawScheme = `hpy-scan://start/?returnUrl=${currentCleanUrl}`;
+        const intentUrl = `intent://start/#Intent;scheme=hpy-scan;end`;
+        const rawScheme = `hpy-scan://start/`;
 
-        // 3. Create an actual link element and trigger a native click event.
-        // Browsers often block window.location redirects, but allow direct <a> clicks.
         const a = document.createElement('a');
         a.href = intentUrl;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
 
-        // 4. Update UI with a manual fallback button just in case the browser blocked the programmatic click.
         document.getElementById('preview').innerHTML = `
             <div style="padding: 20px;">
                 <h3 style="color: #333;">Opening Scanner App...</h3>
@@ -91,6 +79,17 @@
             </div>
         `;
     }
+
+    // This event automatically fires when the user minimizes the scanner app 
+    // and this specific browser tab becomes visible again.
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && isWaitingForScan) {
+            isWaitingForScan = false; // Reset so it doesn't fire again
+            
+            // Give the Android OS 500ms to fully resume the browser before hitting localhost
+            setTimeout(fetchImageAndCloseApp, 500); 
+        }
+    });
 
     function fetchImageAndCloseApp() {
         toaster("Retrieving High-Res Scan...");
@@ -108,7 +107,7 @@
                 fetch(`${SERVER_URL}/close-app`).catch(() => {});
             })
             .catch((e) => { 
-                document.getElementById('msg').innerText = "Failed to load scan or user cancelled."; 
+                document.getElementById('msg').innerText = "Scan cancelled or no document found."; 
                 console.error("Fetch error:", e);
             });
     }
