@@ -88,16 +88,16 @@
 
     async function fetchImageAndCloseApp() {
         toaster("Retrieving High-Res Scan...");
+        let hardwareCode = null;
         
         try {
             const response = await fetch(`${SERVER_URL}/get-scan`);
             
-            // Read custom explicit metadata headers pushed from NanoHTTPD server
-            const hardwareCode = response.headers.get("X-Scan-Status-Code");
-            const hardwareMsg = response.headers.get("X-Scan-Message");
+            // Extract the actual custom response code from headers immediately
+            hardwareCode = parseInt(response.headers.get("X-Scan-Status-Code"), 10);
             
             if (!response.ok) {
-                throw new Error(hardwareMsg || "UNKNOWN_ERROR");
+                throw new Error("HARDWARE_ERROR_FOUND");
             }
             
             const blob = await response.blob();
@@ -107,26 +107,27 @@
             toaster("Scan Loaded!");
             
         } catch (e) {
-            console.error("Hardware Callback Catch:", e.message);
+            console.error("Hardware Execution Fault. Code Received:", hardwareCode);
             let userDisplayMessage = "Scan operation was cancelled or timed out.";
             
-            switch(e.message) {
-                case "ERROR_NO_PAPER_OR_FEED_FAILURE":
-                    userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry.";
+            // Rely strictly on raw device response integers rather than status text strings
+            switch(hardwareCode) {
+                case 6003:
+                    userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry (6003).";
                     break;
-                case "ERROR_HARDWARE_FAILURE":
+                case 6004:
                     userDisplayMessage = "Scan Failed: Critical hardware error reported (6004).";
                     break;
-                case "ERROR_MECHANICAL_JAM":
+                case 6011:
                     userDisplayMessage = "Scan Failed: Paper jam or mechanical track blockage detected (6011).";
                     break;
-                case "ERROR_SCANNER_BUSY":
-                    userDisplayMessage = "Scan Failed: Device is currently busy executing another operation.";
+                case 6005:
+                    userDisplayMessage = "Scan Failed: Device is currently busy executing another operation (6005).";
                     break;
-                case "ERROR_CONNECTION_LOST":
-                    userDisplayMessage = "Scan Failed: Connection lost. Check hardware cables.";
+                case 6010:
+                    userDisplayMessage = "Scan Failed: Connection lost. Check hardware cables (6010).";
                     break;
-                case "ERROR_INITIALIZATION_FAILED":
+                case 6007:
                     userDisplayMessage = "Scan Failed: Initialization setup failed (6007).";
                     break;
             }
@@ -140,7 +141,6 @@
             `;
         } finally {
             isWaitingForScan = false;
-            // Dispatch cleanup termination signal to close background app activity window tasks
             fetch(`${SERVER_URL}/close-app`).catch(() => {});
         }
     }
