@@ -48,11 +48,9 @@
 <script>
     const SERVER_URL = "http://127.0.0.1:8080";
 
-    // 1. Check if we just returned from the Android App
     window.onload = () => {
         const params = new URLSearchParams(window.location.search);
         if (params.get("fetch") === "true") {
-            // Clean up the URL to prevent re-fetching on manual refresh
             window.history.replaceState({}, document.title, window.location.pathname);
             fetchImageAndCloseApp();
         }
@@ -66,19 +64,37 @@
     }
 
     function openScanner() {
-        document.getElementById('msg').innerText = "Waiting for scanner app to finish...";
+        document.getElementById('msg').innerText = "Initiating scanner connection...";
         
-        // 2. Use Intent URL format to safely launch in Chrome and pass current URL
         const currentCleanUrl = encodeURIComponent(window.location.href.split('?')[0]);
-        const intentUrl = `intent://start?returnUrl=${currentCleanUrl}#Intent;scheme=hpy-scan;package=com.hitachi.epsonscan;end`;
         
-        window.location.href = intentUrl;
+        // 1. Chrome Intent string (Omit 'package' to avoid strict Application ID mismatches)
+        const intentUrl = `intent://start/?returnUrl=${currentCleanUrl}#Intent;scheme=hpy-scan;end`;
+        
+        // 2. Standard custom scheme for fallback button
+        const rawScheme = `hpy-scan://start/?returnUrl=${currentCleanUrl}`;
+
+        // 3. Create an actual link element and trigger a native click event.
+        // Browsers often block window.location redirects, but allow direct <a> clicks.
+        const a = document.createElement('a');
+        a.href = intentUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // 4. Update UI with a manual fallback button just in case the browser blocked the programmatic click.
+        document.getElementById('preview').innerHTML = `
+            <div style="padding: 20px;">
+                <h3 style="color: #333;">Opening Scanner App...</h3>
+                <p style="color: #666; margin-bottom: 20px;">If the app doesn't open automatically, your browser's popup blocker might have stopped it.</p>
+                <a href="${rawScheme}" class="btn btn-scan" style="display:inline-block; text-decoration: none;">Force Open App</a>
+            </div>
+        `;
     }
 
     function fetchImageAndCloseApp() {
         toaster("Retrieving High-Res Scan...");
         
-        // 3. Download image using correct endpoint matching NanoHTTPD
         fetch(`${SERVER_URL}/get-scan`)
             .then(res => {
                 if (!res.ok) throw new Error("File not found on server");
@@ -89,7 +105,6 @@
                 document.getElementById('preview').innerHTML = `<img src="${url}">`;
                 toaster("Scan Loaded!");
                 
-                // 4. Tell the App to close itself using correct endpoint
                 fetch(`${SERVER_URL}/close-app`).catch(() => {});
             })
             .catch((e) => { 
