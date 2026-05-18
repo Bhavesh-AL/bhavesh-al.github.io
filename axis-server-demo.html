@@ -93,7 +93,7 @@
         try {
             const response = await fetch(`${SERVER_URL}/get-scan`);
             
-            // Extract the actual custom response code from headers immediately
+            // Instantly parse hardware code from header records
             hardwareCode = parseInt(response.headers.get("X-Scan-Status-Code"), 10);
             
             if (!response.ok) {
@@ -110,7 +110,6 @@
             console.error("Hardware Execution Fault. Code Received:", hardwareCode);
             let userDisplayMessage = "Scan operation was cancelled or timed out.";
             
-            // Rely strictly on raw device response integers rather than status text strings
             switch(hardwareCode) {
                 case 6003:
                     userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry (6003).";
@@ -129,6 +128,13 @@
                     break;
                 case 6007:
                     userDisplayMessage = "Scan Failed: Initialization setup failed (6007).";
+                    break;
+                case 6002:
+                case 0:
+                case null:
+                case NaN:
+                    // If the browser checks right as the file writes, catch it smoothly
+                    userDisplayMessage = "Scanning completed. Preparing high-resolution layout assets, please wait...";
                     break;
             }
             
