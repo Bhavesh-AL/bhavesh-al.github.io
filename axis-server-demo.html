@@ -46,7 +46,8 @@
 <div class="toast" id="toast">Message here</div>
 
 <script>
-    const SERVER_URL = "http://127.0.0.1:8080";
+    // UPDATED: Now matches the secure local IP and Port 9000 used in the Android App
+    const SERVER_URL = "http://127.0.0.1:9000";
     let isWaitingForScan = false;
 
     function toaster(msg) {
@@ -95,6 +96,7 @@
     function fetchImageAndCloseApp() {
         toaster("Retrieving High-Res Scan...");
         
+        // Fetch from Port 9000
         fetch(`${SERVER_URL}/get-scan`)
             .then(res => {
                 if (!res.ok) throw new Error("File not found on server");
@@ -105,7 +107,7 @@
                 document.getElementById('preview').innerHTML = `<img src="${url}">`;
                 toaster("Scan Loaded!");
                 
-                // Triggers finishAndRemoveTask() inside the Android App
+                // Sends the kill signal to Android via Port 9000
                 fetch(`${SERVER_URL}/close-app`).catch(() => {});
             })
             .catch((e) => { 
