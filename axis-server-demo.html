@@ -33,7 +33,7 @@
         <p>Scan your documents directly from the Hitachi hardware to this secure portal.</p>
         
         <div>
-            <button class="btn btn-scan" onclick="openScannerAndPoll()">Open Hitachi Scanner</button>
+            <button class="btn btn-scan" onclick="openScanner()">Open Hitachi Scanner</button>
             <button class="btn btn-print" onclick="window.print()">Print Document</button>
         </div>
 
@@ -47,7 +47,16 @@
 
 <script>
     const SERVER_URL = "http://127.0.0.1:8080";
-    let pollInterval = null;
+
+    // 1. Check if we just returned from the Android App
+    window.onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("fetch") === "true") {
+            // Clean up the URL to prevent re-fetching on manual refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+            fetchImageAndCloseApp();
+        }
+    };
 
     function toaster(msg) {
         const t = document.getElementById('toast');
@@ -56,51 +65,36 @@
         setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    function openScannerAndPoll() {
+    function openScanner() {
         document.getElementById('msg').innerText = "Waiting for scanner app to finish...";
         
-        // 1. Instantly Open the Android App
-        window.location.href = `hpy-scan://start`;
-
-        // 2. Start checking the App's Local Server in the background every 1.5 seconds
-        if(pollInterval) clearInterval(pollInterval);
+        // 2. Use Intent URL format to safely launch in Chrome and pass current URL
+        const currentCleanUrl = encodeURIComponent(window.location.href.split('?')[0]);
+        const intentUrl = `intent://start?returnUrl=${currentCleanUrl}#Intent;scheme=hpy-scan;package=com.hitachi.epsonscan;end`;
         
-        pollInterval = setInterval(async () => {
-            try {
-                // Ask the app: "Is the scan done yet?"
-                const response = await fetch(`${SERVER_URL}/status`);
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    if (data.status === "ready") {
-                        // The app finished! Stop checking.
-                        clearInterval(pollInterval);
-                        fetchImageAndCloseApp();
-                    }
-                }
-            } catch (e) {
-                // Server might not be up yet, or app was closed. Ignore and keep checking.
-                console.log("Waiting for server...");
-            }
-        }, 1500);
+        window.location.href = intentUrl;
     }
 
     function fetchImageAndCloseApp() {
         toaster("Retrieving High-Res Scan...");
         
-        // 3. Download the huge image safely over localhost
-        fetch(`${SERVER_URL}/image`)
-            .then(res => res.blob())
+        // 3. Download image using correct endpoint matching NanoHTTPD
+        fetch(`${SERVER_URL}/get-scan`)
+            .then(res => {
+                if (!res.ok) throw new Error("File not found on server");
+                return res.blob();
+            })
             .then(blob => {
                 const url = URL.createObjectURL(blob);
                 document.getElementById('preview').innerHTML = `<img src="${url}">`;
                 toaster("Scan Loaded!");
                 
-                // 4. Tell the App to close itself. This reveals the browser underneath!
-                fetch(`${SERVER_URL}/shutdown`).catch(() => {});
+                // 4. Tell the App to close itself using correct endpoint
+                fetch(`${SERVER_URL}/close-app`).catch(() => {});
             })
-            .catch(() => { 
-                document.getElementById('msg').innerText = "Failed to load scan."; 
+            .catch((e) => { 
+                document.getElementById('msg').innerText = "Failed to load scan or user cancelled."; 
+                console.error("Fetch error:", e);
             });
     }
 </script>
