@@ -71,6 +71,7 @@
         a.click();
         document.body.removeChild(a);
 
+        // Fallback UI incase the browser blocked the programmatic click
         document.getElementById('preview').innerHTML = `
             <div style="padding: 20px;">
                 <h3 style="color: #333;">Opening Scanner App...</h3>
@@ -104,6 +105,7 @@
                 document.getElementById('preview').innerHTML = `<img src="${url}">`;
                 toaster("Scan Loaded!");
                 
+                // Triggers finishAndRemoveTask() inside the Android App
                 fetch(`${SERVER_URL}/close-app`).catch(() => {});
             })
             .catch((e) => { 
