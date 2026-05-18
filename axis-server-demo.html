@@ -93,11 +93,14 @@
         try {
             const response = await fetch(`${SERVER_URL}/get-scan`);
             
-            // Instantly parse hardware code from header records
-            hardwareCode = parseInt(response.headers.get("X-Scan-Status-Code"), 10);
+            // Extract the integer code directly from the response header
+            const headerCodeStr = response.headers.get("X-Scan-Status-Code");
+            if (headerCodeStr) {
+                hardwareCode = parseInt(headerCodeStr, 10);
+            }
             
             if (!response.ok) {
-                throw new Error("HARDWARE_ERROR_FOUND");
+                throw new Error("HARDWARE_ERROR");
             }
             
             const blob = await response.blob();
@@ -107,9 +110,10 @@
             toaster("Scan Loaded!");
             
         } catch (e) {
-            console.error("Hardware Execution Fault. Code Received:", hardwareCode);
+            console.error("Fetch failed. Hardware Code:", hardwareCode);
             let userDisplayMessage = "Scan operation was cancelled or timed out.";
             
+            // Switch purely based on the explicit integer code returned from Android
             switch(hardwareCode) {
                 case 6003:
                     userDisplayMessage = "Scan Failed: Document feeder empty. Please load paper and retry (6003).";
@@ -128,13 +132,6 @@
                     break;
                 case 6007:
                     userDisplayMessage = "Scan Failed: Initialization setup failed (6007).";
-                    break;
-                case 6002:
-                case 0:
-                case null:
-                case NaN:
-                    // If the browser checks right as the file writes, catch it smoothly
-                    userDisplayMessage = "Scanning completed. Preparing high-resolution layout assets, please wait...";
                     break;
             }
             
