@@ -5,7 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#A10054" />
-  <title>Hitachi Scanner Preview Demo</title>
+  <title>Hitachi Axis 4 — Scan Upload Demo</title>
 
   <style>
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -15,23 +15,28 @@
     :root { --axis:#A10054; --hitachi:#E60012; --ink:#111827; --muted:#6b7280; --bg:#f8fafc; --card:#ffffff; --shadow:0 10px 30px rgba(0,0,0,.06), 0 2px 10px rgba(0,0,0,.04); --radius:20px; }
     @media (prefers-color-scheme: dark){ body{background:#0b0b0c;color:#e5e7eb} :root{--bg:#0b0b0c;--card:#0f1115;--ink:#e5e7eb;--muted:#9ca3af;--shadow:0 10px 30px rgba(0,0,0,.4), 0 2px 10px rgba(0,0,0,.35)} }
     .safe{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
-    .container{max-width:800px;margin:0 auto;padding:40px 20px}
-    header{background:linear-gradient(90deg,var(--axis),var(--hitachi));color:#fff;box-shadow:var(--shadow);padding:16px 0}
-    .topbar{display:flex;align-items:center;justify-content:center;height:32px}
+    .container { max-width: 800px; margin: 0 auto; padding: 0 20px }
+    .grid{display:grid;gap:20px}
+    header{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,var(--axis),var(--hitachi));color:#fff;box-shadow:var(--shadow)}
+    .topbar{display:flex;align-items:center;height:64px}
     .brand{display:flex;align-items:center;gap:12px;font-weight:700}
-    .pill{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:#fff;background:rgba(255,255,255,.16);padding:8px 12px;border-radius:999px}
+    .pill{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--axis);background:rgba(161,0,84,.08);padding:8px 12px;border-radius:999px}
+    header .pill { color:#fff;background:rgba(255,255,255,.16) }
+    .title{font-size:clamp(22px,3.5vw,32px);line-height:1.2;margin:0 0 8px;color:var(--ink)}
+    .subtitle{margin:0 0 24px;color:var(--muted);font-size:1.05rem}
+    .card{background:var(--card);border-radius:16px;padding:28px;box-shadow:var(--shadow);margin-top:24px}
     .muted{color:var(--muted)}
-    .card{background:var(--card);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
     .field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:var(--card);color:inherit}
     .field:focus{outline:2px solid rgba(161,0,84,.35);box-shadow:0 0 0 4px rgba(161,0,84,.12)}
-    .file-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+    .file-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
     .file-name{font-size:.95rem}
-    #printArea{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;min-height:200px;display:grid;place-items:center;overflow:hidden}
-    #printArea > .placeholder{padding:28px;color:var(--muted);font-weight:500}
-    #printArea img{max-width:100%;height:auto;display:block}
-    #printArea iframe{width:100%;height:600px;border:0}
-    #printArea pre{margin:0;padding:16px;white-space:pre-wrap;word-break:break-word;width:100%}
-    footer{padding:40px 0;text-align:center;color:var(--muted);font-size:13px}
+    #previewArea{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;min-height:200px;display:grid;place-items:center;overflow:hidden}
+    #previewArea > .placeholder{padding:40px;color:var(--muted);text-align:center}
+    #previewArea img{max-width:100%;height:auto;display:block}
+    #previewArea iframe{width:100%;height:500px;border:0}
+    #previewArea pre{margin:0;padding:16px;white-space:pre-wrap;word-break:break-word;width:100%}
+    .demo-badge { display: inline-block; background: #eab308; color: #1c1917; font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    footer{padding:30px 0;color:var(--muted);font-size:13px;text-align:center;border-top:1px solid rgba(0,0,0,.04)}
     .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px); transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px; border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s; pointer-events:none; z-index:9999;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
   </style>
@@ -39,58 +44,76 @@
 
 <body class="safe">
   <header class="safe">
-    <div class="container topbar" style="padding:0 20px">
-      <div class="brand">
-        <span class="pill">Hitachi Scanner Uploaded Demo</span>
+    <div class="container topbar">
+      <div class="brand" aria-label="Hitachi Axis">
+        <span class="pill">Hitachi Axis</span>
+        <small style="opacity:.85;margin-left:8px">Digital Hub</small>
+        <small style="opacity:.6;margin-left:6px">v1.0.8</small>
       </div>
     </div>
   </header>
 
-  <main class="container">
-    <div class="card">
-      <h2 style="margin:0 0 8px; color:var(--ink)">Document Live Preview</h2>
-      <p class="muted" style="margin:0 0 20px">Select a file below to verify the scanned image, PDF, or text interface rendering.</p>
-
-      <div class="file-row">
-        <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 320px;" />
-        <span id="fileName" class="file-name muted"></span>
-      </div>
-
-      <div id="printArea">
-        <div class="placeholder">Waiting for document file upload...</div>
-      </div>
+  <main class="container" style="padding-top: 40px; padding-bottom: 40px;">
+    <div>
+      <span class="demo-badge">Environment: Demonstration Only</span>
+      <h1 class="title">Document Upload & Web Preview Engine</h1>
+      <p class="subtitle">This interface isolates and demonstrates how scanned hardware documents, images, or native platform exports are handled and previewed dynamically within a web container wrapper.</p>
     </div>
+
+    <!-- ✅ SIMPLIFIED PREVIEW COMPONENT -->
+    <section id="uploadSection">
+      <div class="card">
+        <h2 style="margin:0 0 6px; font-size: 1.3rem;">Select Document</h2>
+        <p class="muted" style="margin:0 0 16px; font-size: 0.95rem;">Upload a scanned capture file (Image, PDF, or Plain Text) to test initialization and container viewport scaling rules.</p>
+
+        <div class="file-row">
+          <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 320px;" />
+          <span id="fileName" class="file-name muted"></span>
+        </div>
+
+        <div id="previewArea">
+          <div class="placeholder">
+            <span>No document loaded.<br/><small style="opacity: 0.7;">Awaiting file dispatch trigger...</small></span>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <footer>
-    <div>© <span id="year"></span> Hitachi System Interface (TWA Demo)</div>
+  <footer class="safe">
+    <div class="container">
+      <span>© <span id="year"></span> Hitachi Axis — Web Integration Utility Sandbox</span>
+    </div>
   </footer>
 
   <script>
+    // System Viewport Adjustment Shims
     function setVh(){document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');}
     setVh(); addEventListener('resize', setVh);
-    
+    document.getElementById('year').textContent=new Date().getFullYear();
+
     function toaster(msg){
       let t=document.querySelector('.toast');
       if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}
       t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
     }
-    document.getElementById('year').textContent=new Date().getFullYear();
 
     const fileInput = document.getElementById('fileInput');
     const fileNameEl = document.getElementById('fileName');
-    const printArea = document.getElementById('printArea');
+    const previewArea = document.getElementById('previewArea');
 
+    // File Pipeline Listener
     fileInput.addEventListener('change', (e) => {
         handleFileSelection(e.target.files?.[0]);
     });
 
+    // Centralized Document Rendering Logic
     async function handleFileSelection(file) {
-      printArea.innerHTML = '';
+      previewArea.innerHTML = '';
       fileNameEl.textContent = '';
       
       if (!file) {
-        printArea.innerHTML = '<div class="placeholder">Waiting for document file upload...</div>';
+        previewArea.innerHTML = '<div class="placeholder"><span>No document loaded.<br/><small style="opacity: 0.7;">Awaiting file dispatch trigger...</small></span></div>';
         return;
       }
       
@@ -98,39 +121,40 @@
       fileNameEl.textContent = name;
       const url = URL.createObjectURL(file);
 
-      // Handle Image types
+      // Image Render Route
       if (file.type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
         const img = document.createElement('img');
         img.src = url; 
         img.alt = name;
         img.onload = () => toaster('Image rendered successfully');
-        printArea.appendChild(img);
+        previewArea.appendChild(img);
         return;
       }
       
-      // Handle PDF documents
+      // PDF Render Route
       if (file.type === 'application/pdf') {
         const iframe = document.createElement('iframe');
         iframe.src = url;
-        printArea.appendChild(iframe);
-        toaster('PDF loaded into viewport');
+        previewArea.appendChild(iframe);
+        toaster('PDF wrapper initialized');
         return;
       }
-      
-      // Handle Plain text
+
+      // Plain Text Render Route
       if (file.type === 'text/plain' || name.endsWith('.txt')) {
         const text = await file.text();
         const pre = document.createElement('pre');
         pre.textContent = text;
-        printArea.appendChild(pre);
-        toaster('Text file content mapped');
+        previewArea.appendChild(pre);
+        toaster('Text buffer processed');
         return;
       }
       
+      // Fallback
       const info = document.createElement('div');
       info.className = 'placeholder';
-      info.textContent = 'Unsupported format. Use an image, text file, or PDF.';
-      printArea.appendChild(info);
+      info.textContent = 'MIME type mismatch. Please insert standard structural files (Image/PDF/TXT).';
+      previewArea.appendChild(info);
     }
   </script>
 
