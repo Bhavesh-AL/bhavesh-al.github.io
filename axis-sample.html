@@ -1,3 +1,8 @@
+Here is your cleaned-up, full-screen document preview page.
+
+The print buttons, direct scan buttons, and the help/contact form sections have been completely removed. The page layout now focuses entirely on choosing a document (Image, PDF, or Text) and instantly previewing it cleanly in the preview pane.
+
+```html
 <!doctype html>
 <html lang="en">
 <head>
@@ -5,7 +10,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#A10054" />
-  <title>Hitachi Axis 4 — TWA Full-Screen Demo</title>
+  <title>Hitachi Axis 4 — Document Preview</title>
 
   <style>
     html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -53,7 +58,6 @@
     .legal{font-size:12px;opacity:.8}
     .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 20px); transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px; border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s, transform .25s; pointer-events:none; z-index:9999;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-    @media print { body { margin:0 } header, .hero, footer, nav.actions, .toast { display: none !important; } @page { margin: 1cm; } }
   </style>
 </head>
 
@@ -70,7 +74,6 @@
         <button class="btn ghost" onclick="scrollToId('products')">Products</button>
         <button class="btn ghost" onclick="scrollToId('features')">Features</button>
         <button class="btn solid" onclick="primaryCTA()">Open Account</button>
-        <button class="btn solid" onclick="printPage()">Print Page</button>
       </nav>
     </div>
   </header>
@@ -133,43 +136,15 @@
       </div>
     </section>
 
-    <section class="safe" aria-labelledby="contact">
-      <div class="container">
-        <h2 id="contact" style="margin:0 0 14px">Need help?</h2>
-        <div class="card">
-          <form class="grid" style="grid-template-columns:1fr;gap:12px" onsubmit="return fakeSubmit(event)">
-            <label><span>Name</span><br/><input required class="field" type="text" placeholder="Your name" /></label>
-            <label><span>Email</span><br/><input required class="field" type="email" placeholder="you@example.com" /></label>
-            <label><span>Message</span><br/><textarea class="field" rows="4" placeholder="How can we help?"></textarea></label>
-            <button class="btn primary" type="submit">Send message</button>
-            <small class="legal">Demo form — does not send data.</small>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- ✅ UPLOAD & PRINT -->
+    <!-- ✅ UPLOAD & PREVIEW ONLY SECTION -->
     <section id="uploadSection" class="safe">
       <div class="container">
         <div class="card">
-          <h2 style="margin:0 0 10px">Upload & Print</h2>
-          <p class="muted" style="margin:0 0 12px">Choose a file, or open the scanner directly.</p>
+          <h2 style="margin:0 0 10px">Uploaded Document</h2>
+          <p class="muted" style="margin:0 0 12px">Choose a document file to see your preview below.</p>
 
           <div class="file-row">
-            <!-- 1. Existing Standard Upload Input -->
-            <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 250px;" />
-            
-            <!-- 2. NEW Direct Scan Button -->
-            <!-- Clicking this button triggers the hidden input below -->
-            <button class="btn outline" onclick="document.getElementById('directScanInput').click()" style="display: flex; align-items: center; gap: 8px;">
-                <span aria-hidden="true">📸</span> Direct Scan
-            </button>
-            
-            <!-- CRITICAL: This is the hidden input that bypasses the menu by using your unique MIME type -->
-            <input id="directScanInput" type="file" accept="application/x-hitachi-scan" style="display: none;" />
-
-            <!-- 3. Existing Print Button -->
-            <button class="btn primary" onclick="printUploaded()">Print Uploaded</button>
+            <input id="fileInput" type="file" class="field" accept="image/*,application/pdf,text/plain" style="max-width: 300px;" />
             <span id="fileName" class="file-name muted"></span>
           </div>
 
@@ -201,37 +176,19 @@
       t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
     }
     function primaryCTA(){toaster('Opening account flow (demo)')}
-    function fakeSubmit(e){e.preventDefault();toaster('Thanks! Team will reach out.');return false}
-    function printPage(){ toaster('Opening print dialog...'); window.print(); }
     document.getElementById('year').textContent=new Date().getFullYear();
 
     const fileInput = document.getElementById('fileInput');
-    const directScanInput = document.getElementById('directScanInput');
     const fileNameEl = document.getElementById('fileName');
     const printArea = document.getElementById('printArea');
 
-    // --- DIRECT SCAN RETURN LOGIC ---
-    // When the Android app returns the file via the custom application type, 
-    // we process it exactly like a normal file.
-    directScanInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            // We pass the returned file over to the main file handler logic
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(e.target.files[0]);
-            fileInput.files = dataTransfer.files;
-            
-            // true flag indicates it came from the Direct Scan button
-            handleFileSelection(e.target.files[0], true);
-        }
-    });
-
     // --- STANDARD UPLOAD RETURN LOGIC ---
     fileInput.addEventListener('change', (e) => {
-        handleFileSelection(e.target.files?.[0], false);
+        handleFileSelection(e.target.files?.[0]);
     });
 
     // --- CENTRALIZED PREVIEW LOGIC ---
-    async function handleFileSelection(file, isDirectScan) {
+    async function handleFileSelection(file) {
       printArea.innerHTML = '';
       fileNameEl.textContent = '';
       
@@ -240,22 +197,17 @@
         return;
       }
       
-      // If it's a direct scan, the file name might be stripped, so we provide one
-      const name = isDirectScan ? 'scanned_document.jpg' : file.name;
+      const name = file.name;
       fileNameEl.textContent = name;
       
-      // Android securely passes back a URI that we can read directly via object URL
       const url = URL.createObjectURL(file);
 
-      // We explicitly force the rendering of images from the direct scan
-      // because the file technically comes back with the type "image/jpeg" 
-      // per your Android Kotlin code.
-      if (isDirectScan || file.type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
+      if (file.type.startsWith('image/') || name.match(/\.(jpg|jpeg|png)$/i)) {
         const img = document.createElement('img');
         img.src = url; 
         img.alt = name;
         
-        img.onload = () => toaster(isDirectScan ? 'Direct scan received!' : 'Image ready for print');
+        img.onload = () => toaster('Image ready for preview');
         
         printArea.appendChild(img);
         scrollToId('uploadSection');
@@ -283,112 +235,10 @@
       info.textContent = 'Unsupported file type. Try image, PDF, or text.';
       printArea.appendChild(info);
     }
-
-    // --- EXISTING PRINT LOGIC (No Changes) ---
-    function ensureOnlyImagePrintCSS() {
-      if (document.getElementById('onlyImagePrintCSS')) return;
-      const style = document.createElement('style');
-      style.id = 'onlyImagePrintCSS';
-      style.textContent = `
-        @media print {
-          @page { margin: 0; }
-          body > :not(#__onlyPrint) { display: none !important; }
-          html, body { margin: 0 !important; padding: 0 !important; height: 100vh !important; width: 100vw !important; }
-          #__onlyPrint { display: block !important; position: relative !important; margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important; page-break-after: avoid !important; }
-          #__onlyPrint img { position: absolute !important; inset: 0 !important; margin: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; page-break-inside: avoid !important; display: block !important; background:#fff !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    async function printUploaded() {
-      ensureOnlyImagePrintCSS();
-      const srcImg = document.querySelector('#printArea img');
-      if (!srcImg) { toaster('Please upload an image first.'); return; }
-      let dataUrl;
-      try {
-        if (srcImg.src.startsWith('data:')) {
-          dataUrl = srcImg.src;
-        } else {
-          if (srcImg.decode) { try { await srcImg.decode(); } catch(e){} }
-          const c = document.createElement('canvas');
-          c.width  = srcImg.naturalWidth || srcImg.width;
-          c.height = srcImg.naturalHeight || srcImg.height;
-          const ctx = c.getContext('2d', {alpha:false});
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0,0,c.width,c.height);
-          ctx.drawImage(srcImg, 0, 0);
-          dataUrl = c.toDataURL('image/png');
-        }
-      } catch (e) { toaster('Could not prepare image for printing'); return; }
-
-      let holder = document.getElementById('__onlyPrint');
-      if (!holder) {
-        holder = document.createElement('div');
-        holder.id = '__onlyPrint';
-        document.body.appendChild(holder);
-      } else { document.body.appendChild(holder); }
-      holder.innerHTML = '';
-      const img = new Image(); img.alt = 'print'; img.src = dataUrl; holder.appendChild(img);
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      try { window.print(); } catch (e) {}
-      setTimeout(() => { holder.innerHTML = ''; }, 1000);
-    }
-  </script>
-
-  <!-- 🔧 PATCH: print fix shim (v1.0.3) -->
-  <script>
-    (function(){
-      const VERSION = '1.0.3';
-      function getPrintFrame(){
-        let f=document.getElementById('__printFrame');
-        if(!f){
-          f=document.createElement('iframe');
-          f.id='__printFrame';
-          Object.assign(f.style,{position:'fixed',width:'1px',height:'1px',border:'0',opacity:'0',bottom:'0',right:'0'});
-          document.body.appendChild(f);
-        }
-        return f;
-      }
-      async function printUploadedPatched(){
-        const imgEl=document.querySelector('#printArea img');
-        if(!imgEl){ try{toaster('Please upload an image first.');}catch{} return; }
-        const c=document.createElement('canvas');
-        c.width=imgEl.naturalWidth||imgEl.width||800;
-        c.height=imgEl.naturalHeight||imgEl.height||600;
-        const ctx=c.getContext('2d',{alpha:false});
-        ctx.fillStyle='#ffffff';
-        ctx.fillRect(0,0,c.width,c.height);
-        try{ if(imgEl.decode) await imgEl.decode(); }catch{}
-        ctx.drawImage(imgEl,0,0);
-        const dataUrl=c.toDataURL('image/png');
-        const f=getPrintFrame();
-        const doc=f.contentDocument||f.contentWindow.document;
-        doc.open();
-        doc.write(`
-          <!doctype html><html><head><meta charset="utf-8">
-          <title>Print (v${VERSION})</title>
-          <style>
-            @page { size: A4; margin: 0 }
-            html,body{margin:0;height:100%}
-            .page{display:grid;place-items:center;width:100%;height:100%}
-            img{ max-width:100%;max-height:100%;object-fit:contain;background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
-          </style>
-          </head><body><div class="page"><img id="p"></div></body></html>
-        `);
-        doc.close();
-        await new Promise(res => { if (f.contentDocument.readyState === 'complete') res(); else f.onload = res; });
-        const i=doc.getElementById('p');
-        await new Promise((res,rej)=>{ i.onload=res; i.onerror=rej; i.src=dataUrl; });
-        try{ if(i.decode) await i.decode(); }catch{}
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-        f.contentWindow.print();
-        try{ toaster?.('Sent to Android Print…'); }catch{}
-      }
-      window.printUploaded = printUploadedPatched;
-    })();
   </script>
 
   <div class="toast" aria-live="polite"></div>
 </body>
 </html>
+
+```
