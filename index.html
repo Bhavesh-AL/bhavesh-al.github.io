@@ -74,6 +74,17 @@
                 <div class="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div id="mic-meter" class="h-full w-0 meter-track transition-[width] duration-75"></div>
                 </div>
+
+                <!-- Record / playback test -->
+                <div id="rec-controls" class="hidden mt-3 flex items-center gap-2">
+                    <button id="rec-btn" onclick="toggleRecord()" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all active:scale-95">
+                        <i class="fas fa-circle text-rose-500 text-[10px]"></i> <span id="rec-label">Record</span>
+                    </button>
+                    <button id="play-btn" onclick="playRecording()" disabled class="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed transition-all active:scale-95">
+                        <i class="fas fa-play text-[10px]"></i> <span id="play-label">Play</span>
+                    </button>
+                </div>
+                <audio id="rec-audio" class="hidden"></audio>
             </div>
 
             <!-- Location with lat/long -->
@@ -133,6 +144,9 @@
 
         // live handles so we can stop them cleanly
         let camStream = null, micStream = null, audioCtx = null, micRAF = null, watchId = null;
+
+        // mic record/playback state
+        let mediaRecorder = null, recChunks = [], recUrl = null, recTimer = null;
 
         const log = (msg, isError = false) => {
             const el = document.getElementById('debug-console');
@@ -219,6 +233,8 @@
                 log(`Microphone: OK (${micStream.getAudioTracks()[0].label || 'mic'})`);
                 results.mic = true;
                 setRow('check-mic', true, 'Speak — meter should move');
+                document.getElementById('rec-controls').classList.remove('hidden');
+                document.getElementById('rec-controls').classList.add('flex');
             } catch (e) {
                 log(`Mic Error: ${e.name}`, true);
                 results.mic = false;
@@ -267,6 +283,76 @@
             });
         }
 
+        // ---- Record a short clip and play it back ----
+        function toggleRecord() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                return;
+            }
+            if (!micStream) { log('Mic not ready — run diagnostic first', true); return; }
+
+            recChunks = [];
+            if (recUrl) { URL.revokeObjectURL(recUrl); recUrl = null; }
+
+            // pick a supported container
+            const mime = ['audio/webm', 'audio/ogg', 'audio/mp4']
+                .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+            try {
+                mediaRecorder = mime ? new MediaRecorder(micStream, { mimeType: mime })
+                                     : new MediaRecorder(micStream);
+            } catch (e) {
+                log(`Record Error: ${e.name}`, true);
+                return;
+            }
+
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size) recChunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                clearInterval(recTimer);
+                const blob = new Blob(recChunks, { type: mime || 'audio/webm' });
+                recUrl = URL.createObjectURL(blob);
+                document.getElementById('rec-audio').src = recUrl;
+
+                const recBtn = document.getElementById('rec-btn');
+                recBtn.classList.remove('bg-rose-100', 'text-rose-600');
+                recBtn.classList.add('bg-slate-100', 'text-slate-600');
+                document.getElementById('rec-label').textContent = 'Re-record';
+
+                const playBtn = document.getElementById('play-btn');
+                playBtn.disabled = false;
+                playBtn.classList.remove('text-slate-400', 'cursor-not-allowed');
+                playBtn.classList.add('text-slate-600', 'hover:bg-slate-200');
+
+                const kb = (blob.size / 1024).toFixed(1);
+                log(`Recording captured (${kb} KB) — press Play to verify`);
+            };
+
+            mediaRecorder.start();
+
+            // auto-stop after 5s, with a live countdown on the button
+            let secs = 5;
+            const recBtn = document.getElementById('rec-btn');
+            recBtn.classList.remove('bg-slate-100', 'text-slate-600');
+            recBtn.classList.add('bg-rose-100', 'text-rose-600');
+            document.getElementById('rec-label').textContent = `Stop (${secs}s)`;
+            log('Recording… speak now (5s)');
+            recTimer = setInterval(() => {
+                secs--;
+                if (secs <= 0) { if (mediaRecorder.state === 'recording') mediaRecorder.stop(); return; }
+                document.getElementById('rec-label').textContent = `Stop (${secs}s)`;
+            }, 1000);
+        }
+
+        function playRecording() {
+            if (!recUrl) return;
+            const audio = document.getElementById('rec-audio');
+            const label = document.getElementById('play-label');
+            audio.currentTime = 0;
+            audio.play();
+            label.textContent = 'Playing…';
+            log('Playing back recording');
+            audio.onended = () => { label.textContent = 'Play'; };
+        }
+
         async function runDiagnostic() {
             document.getElementById('diag-btn').textContent = 'Re-scanning...';
             log('--- Starting Full Diagnostic ---');
@@ -279,6 +365,9 @@
         // tidy up if the page is hidden/closed
         window.addEventListener('pagehide', () => {
             if (micRAF) cancelAnimationFrame(micRAF);
+            if (recTimer) clearInterval(recTimer);
+            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+            if (recUrl) URL.revokeObjectURL(recUrl);
             if (watchId !== null) navigator.geolocation.clearWatch(watchId);
             [camStream, micStream].forEach(s => s && s.getTracks().forEach(t => t.stop()));
             if (audioCtx) audioCtx.close();
