@@ -8,112 +8,152 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(12px);
-        }
-
-        #debug-console::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        #debug-console::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 10px;
-        }
-        
-        @keyframes pulse-soft {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        :root { --brand: #971237; --brand-dark: #7a0e2c; }
+        body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+        .glass-panel { background: rgba(255,255,255,0.98); backdrop-filter: blur(12px); }
+        #debug-console::-webkit-scrollbar { width: 4px; }
+        #debug-console::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+        @keyframes pulse-soft { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
         .animate-pulse-soft { animation: pulse-soft 2s infinite; }
+        /* mic meter bars */
+        .meter-track { background: linear-gradient(90deg,#10b981 0%,#10b981 55%,#f59e0b 80%,#ef4444 100%); }
     </style>
 </head>
 
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="max-w-md w-full glass-panel rounded-3xl shadow-2xl border border-white p-8">
-        <div class="flex items-center justify-between mb-8">
+    <div class="max-w-md w-full glass-panel rounded-3xl shadow-2xl border border-white p-6 sm:p-8">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-[#971237]">VKYC Check</h1>
+                <h1 class="text-2xl font-bold" style="color:var(--brand)">VKYC Check</h1>
                 <p class="text-xs text-gray-500 font-medium tracking-wide">Axis-Hitachi Digital Banking</p>
             </div>
-            <div class="w-10 h-10 bg-[#971237] rounded-full flex items-center justify-center text-white font-bold italic shadow-lg">A</div>
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold italic shadow-lg" style="background:var(--brand)">A</div>
         </div>
 
-        <div id="status-list" class="space-y-4">
-            <div id="check-camera" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
+        <!-- Live camera preview -->
+        <div class="relative rounded-2xl overflow-hidden bg-slate-900 aspect-video mb-4 shadow-inner border border-slate-200">
+            <video id="preview" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            <div id="video-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2">
+                <i class="fas fa-video text-3xl"></i>
+                <span class="text-xs">Camera preview appears here</span>
+            </div>
+            <span id="live-badge" class="hidden absolute top-2 left-2 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse-soft"></span> LIVE
+            </span>
+        </div>
+
+        <!-- Status rows -->
+        <div id="status-list" class="space-y-3">
+
+            <div id="check-camera" class="flex justify-between items-center p-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm transition-all">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-camera"></i></div>
-                    <span class="font-semibold text-slate-700">Camera</span>
+                    <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-camera"></i></div>
+                    <div>
+                        <span class="font-semibold text-slate-700 block leading-tight">Camera</span>
+                        <span id="camera-detail" class="text-[11px] text-slate-400">Not checked</span>
+                    </div>
                 </div>
                 <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
             </div>
 
-            <div id="check-mic" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-microphone"></i></div>
-                    <span class="font-semibold text-slate-700">Microphone</span>
+            <!-- Microphone with live level meter -->
+            <div id="check-mic" class="p-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm transition-all">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-microphone"></i></div>
+                        <div>
+                            <span class="font-semibold text-slate-700 block leading-tight">Microphone</span>
+                            <span id="mic-detail" class="text-[11px] text-slate-400">Not checked</span>
+                        </div>
+                    </div>
+                    <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
                 </div>
-                <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
+                <div class="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div id="mic-meter" class="h-full w-0 meter-track transition-[width] duration-75"></div>
+                </div>
             </div>
 
-            <div id="check-location" class="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-location-dot"></i></div>
-                    <span class="font-semibold text-slate-700">Location</span>
+            <!-- Location with lat/long -->
+            <div id="check-location" class="p-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm transition-all">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><i class="fas fa-location-dot"></i></div>
+                        <div>
+                            <span class="font-semibold text-slate-700 block leading-tight">Location</span>
+                            <span id="location-detail" class="text-[11px] text-slate-400">Not checked</span>
+                        </div>
+                    </div>
+                    <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
                 </div>
-                <span class="status-icon"><i class="fas fa-minus text-slate-200"></i></span>
+                <div id="coords" class="hidden mt-3 grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-slate-50 rounded-xl py-2">
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wide">Latitude</div>
+                        <div id="lat" class="font-mono text-sm font-bold text-slate-700">—</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl py-2">
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wide">Longitude</div>
+                        <div id="lng" class="font-mono text-sm font-bold text-slate-700">—</div>
+                    </div>
+                    <div class="col-span-2 text-[11px] text-slate-400">
+                        Accuracy: <span id="acc" class="font-mono text-slate-600">—</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="mt-8 space-y-3">
-            <button onclick="runDiagnostic()" id="diag-btn" class="w-full bg-[#971237] hover:bg-[#7a0e2c] text-white py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95">
+        <!-- Buttons -->
+        <div class="mt-6 space-y-3">
+            <button onclick="runDiagnostic()" id="diag-btn" class="w-full text-white py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95"
+                style="background:var(--brand)" onmouseover="this.style.background='var(--brand-dark)'" onmouseout="this.style.background='var(--brand)'">
                 Run System Diagnostic
             </button>
-
             <button id="proceed-btn" disabled class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold opacity-30 cursor-not-allowed transition-all">
                 Proceed to Video Call
             </button>
         </div>
 
-        <div class="mt-8">
+        <!-- Debug console -->
+        <div class="mt-6">
             <div class="flex justify-between items-center mb-2 px-1">
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Debug Logs</h3>
                 <span id="pulse-dot" class="w-2 h-2 rounded-full bg-slate-300"></span>
             </div>
-            <div id="debug-console" class="bg-slate-900 text-emerald-400 text-[10px] font-mono p-4 rounded-xl h-44 overflow-y-auto shadow-inner border border-slate-800">
-                > Initializing secure kernel...<br>
-                > Ready for hardware verification.
+            <div id="debug-console" class="bg-slate-900 text-emerald-400 text-[10px] font-mono p-4 rounded-xl h-36 overflow-y-auto shadow-inner border border-slate-800">
+                &gt; Initializing secure kernel...<br>
+                &gt; Ready for hardware verification.
             </div>
         </div>
     </div>
 
     <script>
-        let results = { camera: false, mic: false, location: false };
+        const results = { camera: false, mic: false, location: false };
+
+        // live handles so we can stop them cleanly
+        let camStream = null, micStream = null, audioCtx = null, micRAF = null, watchId = null;
 
         const log = (msg, isError = false) => {
-            const consoleEl = document.getElementById('debug-console');
+            const el = document.getElementById('debug-console');
             const time = new Date().toLocaleTimeString().split(' ')[0];
             const color = isError ? 'text-rose-400' : 'text-emerald-400';
-            consoleEl.innerHTML += `<div class="mb-1 ${color}"><span class="text-slate-600">[${time}]</span> ${msg}</div>`;
-            consoleEl.scrollTop = consoleEl.scrollHeight;
+            el.innerHTML += `<div class="mb-1 ${color}"><span class="text-slate-600">[${time}]</span> ${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
         };
 
-        const updateUI = (id, success) => {
+        const setRow = (id, ok, detail) => {
             const row = document.getElementById(id);
             const icon = row.querySelector('.status-icon');
-            
-            // Reset styles
-            row.classList.remove('border-emerald-100', 'bg-emerald-50/50', 'border-rose-100', 'bg-rose-50/50');
-            
-            if (success) {
-                row.classList.add('border-emerald-100', 'bg-emerald-50/50');
+            row.classList.remove('border-emerald-100','bg-emerald-50/50','border-rose-100','bg-rose-50/50');
+            if (ok) {
+                row.classList.add('border-emerald-100','bg-emerald-50/50');
                 icon.innerHTML = '<i class="fas fa-check-circle text-emerald-500 text-lg"></i>';
             } else {
-                row.classList.add('border-rose-100', 'bg-rose-50/50');
+                row.classList.add('border-rose-100','bg-rose-50/50');
                 icon.innerHTML = '<i class="fas fa-times-circle text-rose-500 text-lg"></i>';
             }
+            if (detail) document.getElementById(id.replace('check-','') + '-detail').textContent = detail;
             checkFinalStatus();
         };
 
@@ -121,79 +161,128 @@
             if (results.camera && results.mic && results.location) {
                 const btn = document.getElementById('proceed-btn');
                 btn.disabled = false;
-                btn.classList.remove('opacity-30', 'cursor-not-allowed');
-                btn.classList.add('shadow-xl', 'hover:bg-emerald-700', 'bg-emerald-600');
-                document.getElementById('pulse-dot').classList.add('bg-emerald-500', 'animate-pulse-soft');
+                btn.classList.remove('opacity-30','cursor-not-allowed');
+                btn.classList.add('shadow-xl','hover:bg-emerald-700');
+                document.getElementById('pulse-dot').classList.add('bg-emerald-500','animate-pulse-soft');
                 log("VERIFICATION COMPLETE: System is compliant.");
             }
         };
 
-        async function runDiagnostic() {
-            log("--- Starting Full Diagnostic ---");
-            document.getElementById('diag-btn').innerText = "Re-scanning...";
-
-            // 1. Camera Verification
+        // ---- Camera: show the actual stream ----
+        async function checkCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                stream.getTracks().forEach(t => t.stop());
-                log("Camera: OK");
+                camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                const video = document.getElementById('preview');
+                video.srcObject = camStream;
+                document.getElementById('video-placeholder').classList.add('hidden');
+                document.getElementById('live-badge').classList.remove('hidden');
+                document.getElementById('live-badge').classList.add('flex');
+                const track = camStream.getVideoTracks()[0];
+                const s = track.getSettings();
+                log(`Camera: OK (${track.label || 'camera'})`);
                 results.camera = true;
-                updateUI('check-camera', true);
+                setRow('check-camera', true, `${s.width || '?'}×${s.height || '?'} live`);
             } catch (e) {
                 log(`Camera Error: ${e.name}`, true);
                 results.camera = false;
-                updateUI('check-camera', false);
+                setRow('check-camera', false, e.name);
             }
+        }
 
-            // 2. Microphone Verification
+        // ---- Microphone: show a live level meter from the actual signal ----
+        async function checkMic() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(t => t.stop());
-                log("Microphone: OK");
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioCtx.createMediaStreamSource(micStream);
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+                const data = new Uint8Array(analyser.frequencyBinCount);
+                const meter = document.getElementById('mic-meter');
+
+                const draw = () => {
+                    analyser.getByteTimeDomainData(data);
+                    // RMS amplitude → 0..1
+                    let sum = 0;
+                    for (let i = 0; i < data.length; i++) {
+                        const v = (data[i] - 128) / 128;
+                        sum += v * v;
+                    }
+                    const rms = Math.sqrt(sum / data.length);
+                    const level = Math.min(100, Math.round(rms * 300)); // scale up for visibility
+                    meter.style.width = level + '%';
+                    micRAF = requestAnimationFrame(draw);
+                };
+                draw();
+
+                log(`Microphone: OK (${micStream.getAudioTracks()[0].label || 'mic'})`);
                 results.mic = true;
-                updateUI('check-mic', true);
+                setRow('check-mic', true, 'Speak — meter should move');
             } catch (e) {
                 log(`Mic Error: ${e.name}`, true);
                 results.mic = false;
-                updateUI('check-mic', false);
+                setRow('check-mic', false, e.name);
             }
-
-            // 3. Robust Geolocation Logic (Handling Timeout & Code 2)
-            log("Requesting Location...");
-            
-            // Try 1: Fast Cached Check
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    log("Location: OK (Cached Fix)");
-                    results.location = true;
-                    updateUI('check-location', true);
-                },
-                (err) => {
-                    log(`Cache missed. Attempting Live Network Fix (15s)...`, false);
-                    
-                    // Try 2: Live Network-Based (Low Power, High Timeout)
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            log("Location: OK (Network Fix)");
-                            results.location = true;
-                            updateUI('check-location', true);
-                        },
-                        (err2) => {
-                            log(`Location Error: ${err2.message}`, true);
-                            log("HINT: Enable 'Google Location Accuracy' in Settings.", true);
-                            results.location = false;
-                            updateUI('check-location', false);
-                        },
-                        { 
-                            enableHighAccuracy: false, // Prevents Code 2/GPS hang
-                            timeout: 15000,            // Long wait for hardware warm-up
-                            maximumAge: 0 
-                        }
-                    );
-                },
-                { enableHighAccuracy: false, timeout: 2000, maximumAge: 3600000 }
-            );
         }
+
+        // ---- Location: show real lat/long, live updating ----
+        function checkLocation() {
+            return new Promise((resolve) => {
+                if (!('geolocation' in navigator)) {
+                    log('Location Error: not supported', true);
+                    results.location = false;
+                    setRow('check-location', false, 'Unsupported');
+                    return resolve();
+                }
+                log('Requesting Location...');
+
+                const onOk = (pos) => {
+                    const { latitude, longitude, accuracy } = pos.coords;
+                    document.getElementById('coords').classList.remove('hidden');
+                    document.getElementById('lat').textContent = latitude.toFixed(6);
+                    document.getElementById('lng').textContent = longitude.toFixed(6);
+                    document.getElementById('acc').textContent = `±${Math.round(accuracy)} m`;
+                    if (!results.location) log(`Location: OK (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
+                    results.location = true;
+                    setRow('check-location', true, 'Live fix acquired');
+                    resolve();
+                };
+                const onErr = (err) => {
+                    log(`Location Error: ${err.message}`, true);
+                    results.location = false;
+                    setRow('check-location', false, err.message);
+                    resolve();
+                };
+
+                // one-shot first for fast pass/fail, then keep it live
+                navigator.geolocation.getCurrentPosition(onOk, onErr, {
+                    enableHighAccuracy: true, timeout: 15000, maximumAge: 0
+                });
+                // continuous updates so the lat/long stays current
+                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                watchId = navigator.geolocation.watchPosition(onOk, () => {}, {
+                    enableHighAccuracy: true, maximumAge: 5000, timeout: 20000
+                });
+            });
+        }
+
+        async function runDiagnostic() {
+            document.getElementById('diag-btn').textContent = 'Re-scanning...';
+            log('--- Starting Full Diagnostic ---');
+            await checkCamera();
+            await checkMic();
+            await checkLocation();
+            document.getElementById('diag-btn').textContent = 'Re-run Diagnostic';
+        }
+
+        // tidy up if the page is hidden/closed
+        window.addEventListener('pagehide', () => {
+            if (micRAF) cancelAnimationFrame(micRAF);
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            [camStream, micStream].forEach(s => s && s.getTracks().forEach(t => t.stop()));
+            if (audioCtx) audioCtx.close();
+        });
     </script>
 </body>
 
